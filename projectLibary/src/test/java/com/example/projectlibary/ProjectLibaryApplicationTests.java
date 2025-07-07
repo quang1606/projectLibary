@@ -1,12 +1,14 @@
 package com.example.projectlibary;
 
 import com.example.projectlibary.common.BookCopyStatus;
+import com.example.projectlibary.common.BookLoanStatus;
 import com.example.projectlibary.common.NewsStatus;
 import com.example.projectlibary.common.UserRole;
 import com.example.projectlibary.model.*;
 import com.example.projectlibary.repository.*;
 import com.github.javafaker.Faker;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -37,7 +39,10 @@ class ProjectLibaryApplicationTests {
  private BookReviewRepository bookReviewRepository;
  @Autowired
  private NewsRepository newsRepository;
-
+@Autowired
+    private BookLoanRepository bookLoanRepository;
+@Autowired
+private BookElasticSearchRepository bookElasticSearchRepository;
     @Test
     void generate_fake_users() {
         Faker faker = new Faker();
@@ -166,12 +171,14 @@ class ProjectLibaryApplicationTests {
                 Author author = Author.builder()
                         .name(authorName)
                         .bio(bio)
+                        .avatar("https://placehold.co/600x400?text="+authorName.substring(0,1).toLowerCase())
                         .build();
 
                 authorRepository.save(author);
             }
         }
     }
+
     @Test
     @Transactional
     @Rollback(false) // Hoặc @Commit
@@ -191,7 +198,7 @@ class ProjectLibaryApplicationTests {
             return;
         }
 
-        for (int i = 0; i < 200; i++) {
+        for (int i = 0; i < 500; i++) {
             // Tạo ISBN duy nhất
             String isbn;
             do {
@@ -219,6 +226,7 @@ class ProjectLibaryApplicationTests {
                     .category(category)
                     .publisher(faker.company().name())
                     .publicationYear(faker.number().numberBetween(1950, 2023))
+                    .thumbnail("https://placehold.co/600x400?text="+faker.book().title().substring(0,1).toLowerCase())
                     .ebookUrl(faker.random().nextBoolean() ? "https://example.com/ebooks/" + faker.internet().slug() + ".pdf" : null)
                     .replacementCost(new BigDecimal(faker.number().randomDouble(2, 100000, 500000)))
                     .createdBy(creator)
@@ -226,7 +234,24 @@ class ProjectLibaryApplicationTests {
                     .authors(bookAuthors)
                     .build();
 
-            bookRepository.save(book);
+            Book savedBook= bookRepository.save(book);
+            Set<String> authorNames = savedBook.getAuthors().stream()
+                    .map(Author::getName)
+                    .collect(Collectors.toSet());
+
+            BookElasticSearch bookEs = BookElasticSearch.builder()
+                    .id(savedBook.getId()) // Dùng ID từ sách đã lưu trong SQL
+                    .title(savedBook.getTitle())
+                    .description(savedBook.getDescription())
+                    .isbn(savedBook.getIsbn())
+                    .authors(authorNames)
+                    .publicationYear(savedBook.getPublicationYear())
+                    .categoryName(savedBook.getCategory().getName())
+                    .build();
+
+
+            // 2. LƯU VÀO ELASTICSEARCH
+            bookElasticSearchRepository.save(bookEs);
 
         }
     }
@@ -617,6 +642,151 @@ class ProjectLibaryApplicationTests {
         content.append("<p>Trân trọng,<br>Ban quản lý thư viện</p>");
 
         return content.toString();
+    }
+    @Test
+    @Transactional
+    @Rollback(false) // Lưu các thay đổi vào cơ sở dữ liệu sau khi test chạy xong
+    public void generate_fake_book_loans() {
+        // Khởi tạo Faker để sinh dữ liệu giả với ngôn ngữ tiếng Việt
+        Faker faker = new Faker(new Locale("vi"));
+
+        // --- Bước 1: Lấy dữ liệu cần thiết từ Cơ sở dữ liệu (CSDL) ---
+        List<User> students = userRepository.findByRoleIn(Collections.singletonList(UserRole.STUDENT));
+        List<User> librarians = userRepository.findByRoleIn(Arrays.asList(UserRole.ADMIN, UserRole.LIBRARIAN));
+        List<BookCopy> allBookCopies = bookCopyRepository.findAll();
+
+        // --- Bước 2: Kiểm tra xem có đủ dữ liệu nền để tạo phiếu mượn không ---
+        if (students.isEmpty() || librarians.isEmpty() || allBookCopies.isEmpty()) {
+            System.out.println("Cần có dữ liệu về Sinh viên, Thủ thư và Bản sao sách để tạo phiếu mượn.");
+            return;
+        }
+
+        // Tạo một danh sách các bản sao sách đang ở trạng thái "AVAILABLE" (Sẵn sàng cho mượn)
+        // Dùng Collectors.toList() để danh sách này có thể thay đổi (thêm/xóa phần tử)
+        List<BookCopy> availableCopies = allBookCopies.stream()
+                .filter(copy -> copy.getStatus() == BookCopyStatus.AVAILABLE)
+                .collect(Collectors.toList());
+
+        if (availableCopies.isEmpty()) {
+            System.out.println("Không có bản sao sách nào ở trạng thái AVAILABLE để cho mượn.");
+            return;
+        }
+
+        int numberOfLoansToCreate = 300; // Số lượng phiếu mượn muốn tạo
+        // Tạo list để lưu các đối tượng mới, giúp tối ưu hiệu năng bằng cách lưu một lần (batch save)
+        List<BookLoan> loansToSave = new ArrayList<>();
+        List<BookCopy> copiesToUpdate = new ArrayList<>();
+
+        // --- Bước 3: Bắt đầu vòng lặp để tạo các phiếu mượn ---
+        // Vòng lặp sẽ dừng khi đã tạo đủ số lượng phiếu mượn hoặc hết sách để cho mượn
+        for (int i = 0; i < numberOfLoansToCreate && !availableCopies.isEmpty(); i++) {
+            // Chọn ngẫu nhiên một bản sao sách có sẵn và xóa nó khỏi danh sách để tránh cho mượn trùng lặp
+            BookCopy bookCopy = availableCopies.remove(faker.number().numberBetween(0, availableCopies.size()));
+            User student = students.get(faker.number().numberBetween(0, students.size()));
+            User librarian = librarians.get(faker.number().numberBetween(0, librarians.size()));
+
+            // Sử dụng Builder Pattern để tạo đối tượng BookLoan một cách rõ ràng
+            BookLoan.BookLoanBuilder loanBuilder = BookLoan.builder()
+                    .bookCopy(bookCopy)
+                    .user(student)
+                    .librarian(librarian)
+                    .createdBy(librarian)
+                    .updatedBy(librarian);
+
+            // --- Bước 4: Mô phỏng các trạng thái/kịch bản mượn sách khác nhau ---
+            int statusChance = faker.number().numberBetween(1, 101); // Sinh số ngẫu nhiên từ 1 đến 100
+
+            // --- Kịch bản 1: Sách ĐÃ TRẢ (45% cơ hội) ---
+            if (statusChance <= 45) {
+                // Thời gian mượn sách trong quá khứ (từ 20 đến 90 ngày trước)
+                LocalDateTime borrowedAt = LocalDateTime.now().minusDays(faker.number().numberBetween(20, 90));
+                // Hạn trả sách là 14 ngày sau ngày mượn
+                LocalDate dueDate = borrowedAt.toLocalDate().plusDays(14);
+                // Thời gian trả sách thực tế, có thể sớm hoặc trễ hơn hạn trả
+                LocalDateTime returnedAt = borrowedAt.plusDays(faker.number().numberBetween(5, 18));
+
+                BigDecimal fine = BigDecimal.ZERO;
+                // Nếu ngày trả thực tế sau ngày hết hạn thì tính tiền phạt
+                if (returnedAt.toLocalDate().isAfter(dueDate)) {
+                    long overdueDays = java.time.temporal.ChronoUnit.DAYS.between(dueDate, returnedAt.toLocalDate());
+                    fine = new BigDecimal(overdueDays * 5000); // Phí phạt: 5000 VNĐ/ngày
+                }
+
+                loanBuilder
+                        .borrowedAt(borrowedAt)
+                        .dueDate(dueDate)
+                        .studentInitiatedReturnAt(returnedAt.minusHours(faker.number().numberBetween(1, 5))) // Giả lập SV trả trước
+                        .librarianConfirmedReturnAt(returnedAt) // Thủ thư xác nhận trả
+                        .status(BookLoanStatus.RETURNED)
+                        .fineAmount(fine)
+                        .returnCondition("Sách trả trong tình trạng tốt.");
+
+                // Sau khi trả, cập nhật lại trạng thái của bản sao sách thành "AVAILABLE"
+                bookCopy.setStatus(BookCopyStatus.AVAILABLE);
+                copiesToUpdate.add(bookCopy);
+            }
+            // --- Kịch bản 2: ĐANG MƯỢN - Còn trong hạn (30% cơ hội) ---
+            else if (statusChance <= 75) {
+                // Thời gian mượn gần đây (từ 1 đến 13 ngày trước)
+                LocalDateTime borrowedAt = LocalDateTime.now().minusDays(faker.number().numberBetween(1, 13));
+                LocalDate dueDate = borrowedAt.toLocalDate().plusDays(14); // Hạn trả vẫn còn
+
+                loanBuilder
+                        .borrowedAt(borrowedAt)
+                        .dueDate(dueDate)
+                        .status(BookLoanStatus.BORROWED)
+                        .fineAmount(BigDecimal.ZERO); // Chưa có phạt
+
+                // Cập nhật trạng thái bản sao sách thành "BORROWED" (Đã được mượn)
+                bookCopy.setStatus(BookCopyStatus.BORROWED);
+                copiesToUpdate.add(bookCopy);
+            }
+            // --- Kịch bản 3: QUÁ HẠN - Vẫn đang mượn (20% cơ hội) ---
+            else if (statusChance <= 95) {
+                // Thời gian mượn đã lâu (từ 15 đến 45 ngày trước), chắc chắn đã quá hạn
+                LocalDateTime borrowedAt = LocalDateTime.now().minusDays(faker.number().numberBetween(15, 45));
+                LocalDate dueDate = borrowedAt.toLocalDate().plusDays(14); // Hạn trả đã ở trong quá khứ
+                // Tính số ngày quá hạn tính đến hôm nay
+                long overdueDays = java.time.temporal.ChronoUnit.DAYS.between(dueDate, LocalDate.now());
+                BigDecimal fine = new BigDecimal(Math.max(0, overdueDays) * 5000); // Tính tiền phạt tạm thời
+
+                loanBuilder
+                        .borrowedAt(borrowedAt)
+                        .dueDate(dueDate)
+                        .status(BookLoanStatus.OVERDUE)
+                        .fineAmount(fine);
+
+                // Trạng thái bản sao sách vẫn là "BORROWED"
+                bookCopy.setStatus(BookCopyStatus.BORROWED);
+                copiesToUpdate.add(bookCopy);
+            }
+            // --- Kịch bản 4: Báo MẤT SÁCH (5% cơ hội) ---
+            else {
+                LocalDateTime borrowedAt = LocalDateTime.now().minusDays(faker.number().numberBetween(30, 120));
+                LocalDate dueDate = borrowedAt.toLocalDate().plusDays(14);
+
+                loanBuilder
+                        .borrowedAt(borrowedAt)
+                        .dueDate(dueDate)
+                        .status(BookLoanStatus.LOST)
+                        // Tiền phạt bằng đúng chi phí thay thế sách
+                        .fineAmount(bookCopy.getBook().getReplacementCost())
+                        .returnCondition("Sinh viên báo làm mất sách.");
+
+                // Cập nhật trạng thái bản sao sách thành "LOST" (Đã mất)
+                bookCopy.setStatus(BookCopyStatus.LOST);
+                copiesToUpdate.add(bookCopy);
+            }
+
+            // Thêm phiếu mượn vừa tạo vào danh sách chờ lưu
+            loansToSave.add(loanBuilder.build());
+        }
+
+        // --- Bước 5: Lưu tất cả phiếu mượn mới và cập nhật trạng thái các bản sao sách vào CSDL ---
+        bookLoanRepository.saveAll(loansToSave);
+        bookCopyRepository.saveAll(copiesToUpdate);
+
+        System.out.println("Đã tạo thành công " + loansToSave.size() + " phiếu mượn sách.");
     }
     @Test
     void contextLoads() {

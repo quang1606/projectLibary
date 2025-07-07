@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
                 @UniqueConstraint(name = "uk_bookreviews_user_book", columnNames = {"user_id", "book_id"})
         }
       )
-public class BookReview implements Serializable { // AbstractEntity provides createdAt (as review_date proxy),
+public class BookReview implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)

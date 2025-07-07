@@ -22,7 +22,8 @@ public class Author implements Serializable {
 
     @Column(name = "name", nullable = false, length = 255)
     private String name;
-
+    @Column(name = "avatar")
+    private String avatar;
     @Lob // Thích hợp cho kiểu TEXT
     @Column(name = "bio", columnDefinition = "TEXT") // columnDefinition là tùy chọn
     private String bio; // Tiểu sử tác giả

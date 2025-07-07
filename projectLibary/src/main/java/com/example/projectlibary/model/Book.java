@@ -36,7 +36,8 @@ public class Book extends AbstractEntity {
 
     @Column(name = "publication_year") // SQL YEAR type
     private Integer publicationYear;
-
+    @Column(name = "thumbnail")
+    private String thumbnail;
     @Column(name = "ebook_url", length = 512)
     private String ebookUrl; // URL/Path đến file sách điện tử
 

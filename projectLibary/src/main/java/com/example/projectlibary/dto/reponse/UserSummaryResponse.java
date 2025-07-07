@@ -1,10 +1,13 @@
 package com.example.projectlibary.dto.reponse;
 
-import java.io.Serializable;
+import lombok.*;
 
+import java.io.Serializable;
+@Builder
+@Value
 public class UserSummaryResponse implements Serializable {
-    private Long id;
-    private String username;
-    private String fullName;
-     private String avatarUrl;
+     Long id;
+     String username;
+     String fullName;
+      String avatarUrl;
 }
