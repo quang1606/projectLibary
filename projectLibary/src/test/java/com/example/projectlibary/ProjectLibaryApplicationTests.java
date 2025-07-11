@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.Rollback;
 
 import java.math.BigDecimal;
@@ -26,7 +27,7 @@ class ProjectLibaryApplicationTests {
  @Autowired
  private UserRepository userRepository;
  @Autowired
- private BCryptPasswordEncoder bCryptPasswordEncoder;
+ private PasswordEncoder passwordEncoder;
  @Autowired
  private CategoryRepository categoryRepository;
  @Autowired
@@ -46,7 +47,7 @@ private BookElasticSearchRepository bookElasticSearchRepository;
     @Test
     void generate_fake_users() {
         Faker faker = new Faker();
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 1; i++) {
             String fullName = faker.name().fullName();
             String username;
             do {
@@ -91,7 +92,7 @@ private BookElasticSearchRepository bookElasticSearchRepository;
         List<User> users = userRepository.findAll();
         for (User user : users) {
             String password = user.getPassword();
-            String newPassword = bCryptPasswordEncoder.encode(password);
+            String newPassword = passwordEncoder.encode(password);
             user.setPassword(newPassword);
             userRepository.save(user);
         }

@@ -26,5 +26,7 @@ public interface BookService {
 
     PageResponse<BookSummaryResponse> filterBooks(int page, int size, List<String> filter);
 
+    PageResponse<BookSummaryResponse> getBooksByAuthor(Long authorId, int page, int size);
+
 //    PageResponse<BookSummaryResponse> getTopRatedBookOfEachAuthor(int page, int size);
 }

@@ -4,10 +4,12 @@ import com.example.projectlibary.dto.reponse.*;
 import com.example.projectlibary.model.BookElasticSearch;
 import com.example.projectlibary.service.AuthorService;
 import com.example.projectlibary.service.BookService;
+import com.example.projectlibary.service.NewsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +21,7 @@ import java.util.List;
 public class BookController {
     private final BookService bookService;
     private final AuthorService authorService;
+    private final NewsService newsService;
     @GetMapping("") // Đã sửa
     public ResponseEntity<ResponseData<PageResponse<BookSummaryResponse>>> getMostBorrowedBooks(
             @RequestParam(defaultValue = "0") int page,
@@ -29,6 +32,7 @@ public class BookController {
         return ResponseEntity.ok(responseData);
     }
     @GetMapping("/book/all")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ResponseData<PageResponse<BookSummaryResponse>>> getAllBooks( @RequestParam(defaultValue = "0") int page,
                                                                                         @RequestParam(defaultValue = "10") int size){
         PageResponse<BookSummaryResponse> allbook=bookService.getAllBooks(page,size);
@@ -52,6 +56,7 @@ public class BookController {
     }
 
     @GetMapping("/book/best-books")
+//    @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<ResponseData<PageResponse<BookSummaryResponse>>> getTopRatedBooksOfEachAuthor(@RequestParam(defaultValue = "0") int page,
                                                                                                         @RequestParam(defaultValue = "12") int size){
         PageResponse<BookSummaryResponse> bestBooks= bookService.getTopRatedBookOfEachAuthor(page,size);
@@ -88,6 +93,27 @@ public class BookController {
     public ResponseEntity<ResponseData<AuthorResponse>> getAuthorById(@PathVariable("id") long id){
         AuthorResponse authorById = authorService.getAuthorById(id);
         ResponseData<AuthorResponse> responseData = new ResponseData<>(200,"Success",authorById);
+        return ResponseEntity.ok(responseData);
+    }
+    @GetMapping("/{authorId}/books")
+    public ResponseEntity<ResponseData<PageResponse<BookSummaryResponse>>> getBookByAuthor( @PathVariable Long authorId,
+                                                                                            @RequestParam(defaultValue = "0") int page,
+                                                                                            @RequestParam(defaultValue = "12") int size){
+        PageResponse<BookSummaryResponse> pageResponse = bookService.getBooksByAuthor(authorId,page,size);
+        ResponseData<PageResponse<BookSummaryResponse>> responseData =new ResponseData<>(200,"Success",pageResponse);
+        return ResponseEntity.ok(responseData);
+    }
+    @GetMapping("/post")
+    public ResponseEntity<ResponseData<PageResponse<NewsSummaryResponse>>> getAllPost(@RequestParam (defaultValue = "0") int page,
+                                                                                 @RequestParam(defaultValue = "18") int size){
+        PageResponse<NewsSummaryResponse> pageResponse = newsService.getAllNew(page,size);
+        ResponseData<PageResponse<NewsSummaryResponse>> responseData = new ResponseData<>(200,"Success",pageResponse);
+        return ResponseEntity.ok(responseData);
+    }
+    @GetMapping("/post/{id}")
+    public ResponseEntity<ResponseData<NewsDetailResponse>> getPostById(@PathVariable("id") long id){
+        NewsDetailResponse newById = newsService.getNewById(id);
+        ResponseData<NewsDetailResponse> responseData = new ResponseData<>(200,"Success",newById);
         return ResponseEntity.ok(responseData);
     }
 

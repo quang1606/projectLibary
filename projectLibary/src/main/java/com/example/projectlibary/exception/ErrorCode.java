@@ -25,6 +25,7 @@ public enum ErrorCode {
     QR_CODE_ALREADY_EXIST(1009, "QR code already exist", HttpStatus.CONFLICT),
     CATEGORY_NOT_FOUND(1010, "Category not found", HttpStatus.NOT_FOUND),
     AUTHOR_NOT_FOUND(1011, "Author not found", HttpStatus.NOT_FOUND),
+    POSR_NOT_FOUND(1012, "Position not found", HttpStatus.NOT_FOUND),
 
     // === Lỗi nghiệp vụ Mượn/Trả sách (Nhóm 3xxx) ===
     BOOK_COPY_NOT_AVAILABLE(3001, "This book copy is not available for borrowing", HttpStatus.BAD_REQUEST),
@@ -52,7 +53,10 @@ public enum ErrorCode {
     CANNOT_RESERVE_AVAILABLE_BOOK(4002, "This book has available copies and cannot be reserved", HttpStatus.BAD_REQUEST),
     //Dùng khi tra cứu một yêu cầu đặt trước (qua ID) không tìm thấy
     RESERVATION_NOT_FOUND(4003, "Reservation not found", HttpStatus.NOT_FOUND),
-    ;
+
+    // === Lỗi liên quan đến Token (Nhóm 5xxx) ===
+    REFRESH_TOKEN_NOT_FOUND(5001, "Refresh token is not in database!", HttpStatus.NOT_FOUND),
+    REFRESH_TOKEN_EXPIRED(5002, "Refresh token was expired. Please make a new sign-in request", HttpStatus.FORBIDDEN);
 
     private final int code;
     private final String message;

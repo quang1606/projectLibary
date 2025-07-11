@@ -112,4 +112,6 @@ public interface BookRepository extends JpaRepository<Book, Long> , JpaSpecifica
             @Param("minVotesRequired") double minVotesRequired,
             @Param("overallAverageRating") double overallAverageRating
     );
+
+    Page<Book> findByAuthors_Id(Long authorId, Pageable pageable);
 }

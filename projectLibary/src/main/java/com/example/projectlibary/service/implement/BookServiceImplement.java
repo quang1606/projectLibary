@@ -242,7 +242,9 @@ public class BookServiceImplement implements BookService {
             return PageResponse.from(books, bookSummaryResponses);
         }
 
-        private SearchOperation mapOperator(String operator) {
+
+
+    private SearchOperation mapOperator(String operator) {
             switch (operator) {
                 case "==": return SearchOperation.EQUAL;
                 case ">":   return SearchOperation.GREATER_THAN;
@@ -253,6 +255,17 @@ public class BookServiceImplement implements BookService {
                 default:return null;
             }
 
+
+    }
+
+
+    @Override
+    public PageResponse<BookSummaryResponse> getBooksByAuthor(Long authorId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Book> bookPage = bookRepository.findByAuthors_Id(authorId,pageable);
+        List<BookSummaryResponse> bookSummaryResponses = bookMapper.toSummaryResponseList(bookPage.getContent());
+        enrichSummariesWithLoanCounts(bookSummaryResponses);
+        return PageResponse.from(bookPage,bookSummaryResponses);
     }
 
 
