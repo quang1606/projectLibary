@@ -5,7 +5,9 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Builder
-@Value
+@Getter
+@Setter
+@AllArgsConstructor
 
 public class BookReviewResponse {
      Long id;

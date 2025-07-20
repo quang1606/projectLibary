@@ -14,6 +14,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface BookRepository extends JpaRepository<Book, Long> , JpaSpecificationExecutor<Book> {
     boolean existsByIsbn(String isbn);
@@ -46,16 +47,7 @@ public interface BookRepository extends JpaRepository<Book, Long> , JpaSpecifica
             "GROUP BY b.id")
     List<BookLoanCountResponse> findLoanCountsForBooks(@Param("bookIds") List<Long> bookIds);
 
-//    @Query( "select NEW com.example.projectlibary.dto.reponse.BookRatingResponse(b.id ,avg(bl.rating))"+
-//            "from Book b "+
-//            "left join BookReview bl "+
-//            "WHERE b.id IN :bookIds " +
-//             "GROUP BY b.id"   )
-//    List<BookRatingResponse> findAverageRatingForBook(List<Long> bookIds);
 
-// repository/BookRepository.java
-
-// ...
 
     @Query("SELECT new com.example.projectlibary.dto.reponse.BookRatingResponse(b.id, COALESCE(AVG(r.rating), 0.0)) " +
             "FROM Book b LEFT JOIN b.reviews r " + // <--- SỬA LẠI THÀNH JOIN QUA THUỘC TÍNH 'reviews'
@@ -114,4 +106,9 @@ public interface BookRepository extends JpaRepository<Book, Long> , JpaSpecifica
     );
 
     Page<Book> findByAuthors_Id(Long authorId, Pageable pageable);
+
+    Optional<Book >findByIsbn(String newIsbn);
+
+    @Query("SELECT b FROM Book b WHERE b.id = :id")
+    Optional<Book> findByIdIncludeDeleted(@Param("id") Long id);
 }

@@ -1,9 +1,7 @@
 package com.example.projectlibary.mapper;
 
 import com.example.projectlibary.dto.reponse.BookSummaryResponse;
-import com.example.projectlibary.dto.reponse.FavoriteBookResponse;
-import com.example.projectlibary.model.Author;
-import com.example.projectlibary.model.Book;
+import com.example.projectlibary.dto.reponse.FavouriteBookResponse;
 import com.example.projectlibary.model.UserFavorite;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -20,7 +18,7 @@ public class FavoriteMapper {
         this.bookMapper = bookMapper;
     }
 
-    public  FavoriteBookResponse toFavoriteBookResponse(UserFavorite entity) {
+    public FavouriteBookResponse toFavoriteBookResponse(UserFavorite entity) {
         if (entity == null) {
             return null;
         }
@@ -28,7 +26,7 @@ public class FavoriteMapper {
         BookSummaryResponse bookSummary = bookMapper.toSummaryResponse(entity.getBook());
 
         // Tạo đối tượng response chính
-        return new FavoriteBookResponse(
+        return new FavouriteBookResponse(
                 entity.getId(),
                 entity.getFavoritedAt(),
                 bookSummary
@@ -37,7 +35,7 @@ public class FavoriteMapper {
     }
 
     // Bạn cũng có thể tạo một phương thức để chuyển đổi cả một danh sách
-    public  List<FavoriteBookResponse> toFavoriteBookResponseList(List<UserFavorite> entities) {
+    public  List<FavouriteBookResponse> toFavoriteBookResponseList(List<UserFavorite> entities) {
         if (entities == null) {
             return Collections.emptyList();
         }

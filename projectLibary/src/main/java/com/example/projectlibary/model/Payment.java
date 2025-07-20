@@ -53,11 +53,5 @@ public class Payment extends AbstractEntity { // AbstractEntity provides created
             foreignKeyDefinition = "FOREIGN KEY (processed_by) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE"))
     private User processedBy; // Thủ thư/Admin xử lý
 
-    @Override
-    protected void onPrePersist() {
-        super.onPrePersist();
-        if (this.paymentDate == null) {
-            this.paymentDate = LocalDateTime.now();
-        }
-    }
+
 }

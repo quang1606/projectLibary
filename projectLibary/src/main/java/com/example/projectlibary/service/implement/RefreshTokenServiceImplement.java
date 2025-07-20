@@ -47,7 +47,7 @@ public class RefreshTokenServiceImplement implements RefreshTokenService {
     @Override
     @Transactional
     public RefreshToken verifyRefreshToken(RefreshToken refreshToken) {
-        if (refreshToken.getExpiryDate().compareTo(Instant.now().plusMillis(refreshTokenDurationMs)) < 0) {
+        if (refreshToken.getExpiryDate().isBefore(Instant.now())) {
             refreshTokenRepository.delete(refreshToken);
             throw new AppException(ErrorCode.REFRESH_TOKEN_EXPIRED);
         }

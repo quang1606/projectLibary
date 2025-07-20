@@ -1,12 +1,23 @@
 package com.example.projectlibary.service.implement;
 
+import com.example.projectlibary.common.UserRole;
 import com.example.projectlibary.configuration.SecurityConfig;
 import com.example.projectlibary.dto.reponse.LoginResponse;
 import com.example.projectlibary.dto.reponse.RefreshTokenResponse;
+import com.example.projectlibary.dto.reponse.UserResponse;
 import com.example.projectlibary.dto.request.LoginRequest;
+import com.example.projectlibary.dto.request.RegistrationRequest;
+import com.example.projectlibary.event.UserRegistrationEvent;
+import com.example.projectlibary.exception.AppException;
+import com.example.projectlibary.exception.ErrorCode;
 import com.example.projectlibary.model.CustomUserDetails;
 import com.example.projectlibary.model.RefreshToken;
+import com.example.projectlibary.model.User;
+import com.example.projectlibary.model.VerificationTokens;
+import com.example.projectlibary.repository.UserRepository;
+import com.example.projectlibary.repository.VerificationTokensRepository;
 import com.example.projectlibary.service.AuthenticationService;
+import com.example.projectlibary.service.KafkaProducerService;
 import com.example.projectlibary.service.RefreshTokenService;
 import com.example.projectlibary.service.TokenBlacklistService;
 import com.example.projectlibary.utils.JwtTokenUtil;
@@ -17,6 +28,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,18 +36,25 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.Calendar;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthenticationServiceImplement implements AuthenticationService {
     private final  AuthenticationManager authenticationManager;
     private final JwtTokenUtil jwtTokenUtil;
     private final RefreshTokenService refreshTokenService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final UserRepository userRepository;
+    private final KafkaProducerService kafkaProducerService;
+    private final VerificationTokensRepository verificationTokensRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${jwt.refresh-token.cookie-name}")
     private String refreshTokenCookieName;
@@ -81,11 +100,74 @@ public class AuthenticationServiceImplement implements AuthenticationService {
                 .map(refreshTokenService::verifyRefreshToken)
                 .map(RefreshToken::getUser)
                 .map(user -> {
-                    String accessToken = jwtTokenUtil.generateAccessToken((UserDetails) user);
+                    UserDetails userDetails = new CustomUserDetails(user);
+
+                    // Bây giờ truyền đối tượng UserDetails hợp lệ này vào hàm tạo token
+                    String accessToken = jwtTokenUtil.generateAccessToken(userDetails);
                     // Không cần trả lại refresh token trong body
                     return new RefreshTokenResponse(accessToken);
                 })
                 .orElseThrow(() -> new BadRequestException("Refresh token is not in database or invalid!"));
+    }
+
+    @Override
+    @Transactional
+    public UserResponse register(RegistrationRequest registrationRequest, HttpServletRequest  request) {
+        if(userRepository.existsByEmail(registrationRequest.getEmail())) {
+            throw new AppException(ErrorCode.USER_ALREADY_EXIST);
+        }
+        if(userRepository.existsByUsername(registrationRequest.getUsername())) {
+            throw new AppException(ErrorCode.USERNAME_ALREADY_EXIST);
+        }
+        User newUser = new User();
+        newUser.setEmail(registrationRequest.getEmail());
+        newUser.setUsername(registrationRequest.getUsername());
+        newUser.setPassword(passwordEncoder.encode(registrationRequest.getPassword()));
+        newUser.setRole(UserRole.STUDENT);
+        newUser.setActive(false);
+        User saveUser= userRepository.save(newUser);
+        log.info("Successfully registered user with email: {}", saveUser.getEmail());
+        try {
+            String appUrl = getAppUrl(request);
+            UserRegistrationEvent event = UserRegistrationEvent.builder()
+                    .userId(saveUser.getId())
+                    .email(saveUser.getEmail())
+                    .appUrl(appUrl)
+                    .build();
+            kafkaProducerService.sendUserRegistrationEvent(event);
+        } catch (Exception e) {
+            log.error("Error sending registration event to Kafka for user {}: {}", saveUser.getEmail(), e.getMessage());
+        }
+        return null;
+    }
+
+    @Override
+    public void createVerificationTokenForUser(User user, String token) {
+        VerificationTokens myToken = new VerificationTokens(token,user);
+        verificationTokensRepository.save(myToken);
+    }
+
+    @Override
+    @Transactional
+    public String validateVerificationToken(String token) {
+        VerificationTokens verificationTokens = verificationTokensRepository.findByToken(token)
+                .orElseThrow(()->new AppException(ErrorCode.INVALID_VERIFICATION_TOKEN));
+
+        User user = verificationTokens.getUser();
+
+        if (verificationTokens.isExpired()) {
+            verificationTokensRepository.delete(verificationTokens);
+            throw new AppException(ErrorCode.EXPIRED_VERIFICATION_TOKEN);
+        }
+
+        user.setActive(true);
+        userRepository.save(user);
+        verificationTokensRepository.delete(verificationTokens); // Xóa token sau khi đã sử dụng
+        return "valid";
+    }
+
+    private String getAppUrl(HttpServletRequest request) {
+        return "http://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
     }
 
     private void deleteRefreshTokenCookie(HttpServletResponse response) {

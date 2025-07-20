@@ -14,12 +14,11 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 @Table(name = "authors")
-public class Author implements Serializable {
+public class  Author  {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)
     private Long id;
-
     @Column(name = "name", nullable = false, length = 255)
     private String name;
     @Column(name = "avatar")

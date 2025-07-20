@@ -2,6 +2,9 @@ package com.example.projectlibary.model;
 import com.example.projectlibary.common.BookLoanStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -15,6 +18,7 @@ import java.util.Set;
 @Entity
 @Builder
 @Table(name = "book_loans")
+@EntityListeners(AuditingEntityListener.class)
 public class BookLoan extends AbstractEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -58,11 +62,13 @@ public class BookLoan extends AbstractEntity {
             foreignKeyDefinition = "FOREIGN KEY (librarian_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE"))
     private User librarian; // Thủ thư xử lý xác nhận mượn/trả
 
+    @CreatedBy
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", foreignKey = @ForeignKey(name = "fk_bookloans_created_by",
+    @JoinColumn(name = "created_by", updatable = false, foreignKey = @ForeignKey(name = "fk_bookloans_created_by",
             foreignKeyDefinition = "FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE"))
     private User createdBy;
 
+    @LastModifiedBy
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by", foreignKey = @ForeignKey(name = "fk_bookloans_updated_by",
             foreignKeyDefinition = "FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE"))

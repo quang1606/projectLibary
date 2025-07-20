@@ -10,7 +10,7 @@ import java.time.Instant;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class FavoriteBookResponse {
+public class FavouriteBookResponse {
 
     private Long id; // ID của chính bản ghi "yêu thích"
     private Instant favoritedAt; // Thời điểm yêu thích

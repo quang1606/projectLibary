@@ -334,15 +334,13 @@ private BookElasticSearchRepository bookElasticSearchRepository;
         if (randomNum <= 60) {
             return BookCopyStatus.AVAILABLE;
         } else if (randomNum <= 75) {
-            return BookCopyStatus.BORROWED;
+            return BookCopyStatus.PENDING;
         } else if (randomNum <= 85) {
-            return BookCopyStatus.PENDING_BORROW;
+            return BookCopyStatus.RESERVED;
         } else if (randomNum <= 90) {
-            return BookCopyStatus.PENDING_RETURN;
-        } else if (randomNum <= 94) {
-            return BookCopyStatus.DAMAGED;
-        } else if (randomNum <= 97) {
-            return BookCopyStatus.REPAIRING;
+            return BookCopyStatus.BORROWED;
+        } else if (randomNum <= 98) {
+            return BookCopyStatus.DISCARDED;
         } else {
             return BookCopyStatus.LOST;
         }

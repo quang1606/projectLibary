@@ -1,3 +1,6 @@
-FROM elasticsearch:8.11.1
+FROM ubuntu:latest
 LABEL authors="XuanQuang"
-RUN bin/elasticsearch-plugin install analysis-icu
+FROM docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+
+# Cài đặt plugin analysis-icu để hỗ trợ tìm kiếm tiếng Việt
+RUN /usr/share/elasticsearch/bin/elasticsearch-plugin install analysis-icu

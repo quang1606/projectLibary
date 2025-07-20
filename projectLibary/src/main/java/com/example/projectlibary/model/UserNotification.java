@@ -3,6 +3,8 @@ package com.example.projectlibary.model;
 import com.example.projectlibary.common.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -14,7 +16,8 @@ import java.time.LocalDateTime;
 @Entity
 @Builder
 @Table(name = "user_notifications")
-public class UserNotification implements Serializable {
+@EntityListeners(AuditingEntityListener.class)
+public class UserNotification {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,6 +49,7 @@ public class UserNotification implements Serializable {
     private Long relatedEntityId; // ID của thực thể liên quan
 
     @Column(name = "created_at", updatable = false)
+    @CreatedDate
     private LocalDateTime createdAt;
 
     @PrePersist
@@ -53,8 +57,6 @@ public class UserNotification implements Serializable {
         if (this.sentAt == null) {
             this.sentAt = LocalDateTime.now();
         }
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
-        }
+
     }
 }

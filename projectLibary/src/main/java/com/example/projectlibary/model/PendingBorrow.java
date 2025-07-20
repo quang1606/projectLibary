@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Entity
 @Builder
 @Table(name = "pending_borrows")
-public class PendingBorrow implements Serializable { // AbstractEntity provides createdAt, updatedAt
+public class PendingBorrow  { // AbstractEntity provides createdAt, updatedAt
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)

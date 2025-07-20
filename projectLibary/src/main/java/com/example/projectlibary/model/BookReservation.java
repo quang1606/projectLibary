@@ -3,6 +3,7 @@ package com.example.projectlibary.model;
 import com.example.projectlibary.common.BookReservationStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -45,11 +46,5 @@ public class BookReservation extends AbstractEntity { // AbstractEntity provides
     @Column(name = "queue_position")
     private Integer queuePosition; // Vị trí trong hàng đợi
 
-    @Override
-    protected void onPrePersist() {
-        super.onPrePersist();
-        if (this.reservedAt == null) {
-            this.reservedAt = LocalDateTime.now();
-        }
-    }
+
 }

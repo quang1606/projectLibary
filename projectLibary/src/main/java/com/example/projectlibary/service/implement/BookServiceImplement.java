@@ -5,32 +5,35 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import com.example.projectlibary.common.SearchOperation;
 import com.example.projectlibary.dto.reponse.*;
+import com.example.projectlibary.dto.request.CreateBookRequest;
+import com.example.projectlibary.dto.request.UpdateBookRequest;
+import com.example.projectlibary.event.BookSyncEvent;
 import com.example.projectlibary.exception.AppException;
 import com.example.projectlibary.exception.ErrorCode;
 import com.example.projectlibary.mapper.BookMapper;
-import com.example.projectlibary.model.Book;
-import com.example.projectlibary.model.BookElasticSearch;
-import com.example.projectlibary.model.SearchCriteria;
-import com.example.projectlibary.repository.BookRepository;
-import com.example.projectlibary.repository.BookSpecification;
+import com.example.projectlibary.model.*;
+import com.example.projectlibary.repository.*;
 import com.example.projectlibary.service.BookService;
+import com.example.projectlibary.service.CloudinaryService;
+import com.example.projectlibary.service.KafkaProducerService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.*;
-import org.springframework.data.elasticsearch.core.query.HighlightQuery;
-import org.springframework.data.elasticsearch.core.query.highlight.HighlightField;
-import org.springframework.data.elasticsearch.core.query.highlight.HighlightParameters;
+
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 
+import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,9 +46,11 @@ public class BookServiceImplement implements BookService {
     private final ElasticsearchOperations elasticsearchOperations;
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
-//    private final BookSpecification bookSpecification;
-    private static final Logger logger = LogManager.getLogger(BookServiceImplement.class);
-
+    private final CloudinaryService cloudinaryService;
+    private final UserRepository userRepository;
+    private final AuthorRepository authorRepository;
+    private final CategoryRepository categoryRepository;
+    private final KafkaProducerService kafkaProducerService;
 
     // Làm giàu danh sách BookSummaryResponse với thông tin về số lượt mượn (loanCount).
     public void enrichSummariesWithLoanCounts(List<BookSummaryResponse> bookSummaryResponses) {
@@ -266,6 +271,229 @@ public class BookServiceImplement implements BookService {
         List<BookSummaryResponse> bookSummaryResponses = bookMapper.toSummaryResponseList(bookPage.getContent());
         enrichSummariesWithLoanCounts(bookSummaryResponses);
         return PageResponse.from(bookPage,bookSummaryResponses);
+    }
+
+    @Override
+    @Transactional
+    public BookDetailResponse createBook(CreateBookRequest createBookRequest, MultipartFile pdf, MultipartFile thumbnail) {
+
+        if (bookRepository.existsByIsbn(createBookRequest.getIsbn())) {
+            throw new AppException(ErrorCode.ISBN_ALREADY_EXIST);
+        }
+        Category category = categoryRepository.findById(createBookRequest.getCategoryId())
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+        Set<Author> authors = new HashSet<>(authorRepository.findAllById(createBookRequest.getAuthorIds()));
+        if (authors.size() != createBookRequest.getAuthorIds().size()) {
+            throw new AppException(ErrorCode.AUTHOR_NOT_FOUND);
+        }
+        String thumbnailUrl = null;
+        if (thumbnail != null && !thumbnail.isEmpty()) {
+            try {
+                // Upload ảnh bìa
+                Map thumbnailResult = cloudinaryService.uploadFile(thumbnail, "library/thumbnails");
+                thumbnailUrl = thumbnailResult.get("url").toString();
+            } catch (IOException e) {
+                log.error("Error uploading thumbnail to Cloudinary", e);
+                throw new AppException(ErrorCode.FILE_UPLOAD_ERROR); // Tạo ErrorCode mới
+            }
+        }
+
+        String ebookUrl = null;
+        if (pdf != null && !pdf.isEmpty()) {
+            try {
+                // Upload file PDF
+                Map pdfResult = cloudinaryService.uploadFile(pdf, "library/ebooks");
+                ebookUrl = pdfResult.get("url").toString();
+            } catch (IOException e) {
+                log.error("Error uploading PDF to Cloudinary", e);
+                throw new AppException(ErrorCode.FILE_UPLOAD_ERROR);
+            }
+        }
+        Book newBook = Book.builder()
+                .title(createBookRequest.getTitle())
+                .description(createBookRequest.getDescription())
+                .isbn(createBookRequest.getIsbn())
+                .publisher(createBookRequest.getPublisher())
+                .publicationYear(createBookRequest.getPublicationYear())
+                .replacementCost(createBookRequest.getReplacementCost())
+                .thumbnail(thumbnailUrl) // Gán URL đã upload
+                .ebookUrl(ebookUrl)   // Gán URL đã upload
+                .category(category)
+                .authors(authors)
+                .build();
+
+        Book savedBook = bookRepository.save(newBook);
+        log.info("Successfully created book with ID: {}", savedBook.getId());
+
+        BookSyncEvent bookSyncEvent = BookSyncEvent.builder()
+                .evenType("CREATE")
+                .id(savedBook.getId())
+                .title(savedBook.getTitle())
+                .description(savedBook.getDescription())
+                .isbn(savedBook.getIsbn())
+                .authors(savedBook.getAuthors().stream().map(Author::getName).collect(Collectors.toSet()))
+                .publicationYear(savedBook.getPublicationYear())
+                .categoryName(savedBook.getCategory().getName())
+                .build();
+
+        kafkaProducerService.senBookEvent(bookSyncEvent);
+        return bookMapper.toBookDetailResponse(savedBook);
+    }
+
+    @Override
+    @Transactional
+    public BookDetailResponse updateBook(UpdateBookRequest request, MultipartFile pdfFile, MultipartFile thumbnail,Long id) {
+        Book bookToUpdate = bookRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+        boolean isUpdated = false;
+        // 2. Kiểm tra ISBN (Logic đã sửa)
+        String newIsbn = request.getIsbn();
+        // Chỉ kiểm tra nếu ISBN được thay đổi
+        if (newIsbn != null && !newIsbn.equals(bookToUpdate.getIsbn())) {
+            // Kiểm tra xem ISBN mới có bị trùng với sách nào khác không
+            bookRepository.findByIsbn(newIsbn).ifPresent(existingBook -> {
+                if (!existingBook.getId().equals(id)) {
+                    throw new AppException(ErrorCode.ISBN_ALREADY_EXIST);
+                }
+            });
+            bookToUpdate.setIsbn(newIsbn);
+        }
+        // 3. Cập nhật các trường đơn giản (chỉ cập nhật nếu giá trị mới không null)
+        if (request.getTitle() != null) bookToUpdate.setTitle(request.getTitle());
+        if (request.getDescription() != null) bookToUpdate.setDescription(request.getDescription());
+        if (request.getPublisher() != null) bookToUpdate.setPublisher(request.getPublisher());
+        if (request.getPublicationYear() != null) bookToUpdate.setPublicationYear(request.getPublicationYear());
+        if (request.getReplacementCost() != null) bookToUpdate.setReplacementCost(request.getReplacementCost());
+        // 4. Cập nhật các quan hệ (nếu có thay đổi)
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
+            bookToUpdate.setCategory(category);
+        }
+        if (request.getAuthorIds() != null && !request.getAuthorIds().isEmpty()) {
+            Set<Author> authors = new HashSet<>(authorRepository.findAllById(request.getAuthorIds()));
+            if (authors.size() != request.getAuthorIds().size()) {
+                throw new AppException(ErrorCode.AUTHOR_NOT_FOUND);
+            }
+            bookToUpdate.setAuthors(authors);
+        }
+
+        // 5. Cập nhật file Thumbnail (chỉ khi có file mới)
+        if (thumbnail != null && !thumbnail.isEmpty()) {
+            try {
+                Map thumbnailResult = cloudinaryService.uploadFile(thumbnail, "library/thumbnails");
+                bookToUpdate.setThumbnail(thumbnailResult.get("url").toString());
+            } catch (IOException e) {
+                log.error("Error updating thumbnail to Cloudinary for book ID: {}", id, e);
+                throw new AppException(ErrorCode.FILE_UPLOAD_ERROR);
+            }
+        }
+
+        // 6. Cập nhật file Ebook (chỉ khi có file mới)
+        if (pdfFile != null && !pdfFile.isEmpty()) {
+            try {
+                Map pdfResult = cloudinaryService.uploadFile(pdfFile, "library/ebooks");
+                bookToUpdate.setEbookUrl(pdfResult.get("url").toString());
+            } catch (IOException e) {
+                log.error("Error updating PDF to Cloudinary for book ID: {}", id, e);
+                throw new AppException(ErrorCode.FILE_UPLOAD_ERROR);
+            }
+        }
+
+
+        // 7. Lưu lại (JPA Auditing sẽ tự động cập nhật updatedBy và updatedAt)
+        Book updatedBook = bookRepository.save(bookToUpdate);
+        log.info("Successfully updated book with ID: {}", updatedBook.getId());
+
+        BookSyncEvent bookSyncEvent = BookSyncEvent.builder()
+                .evenType("UPDATE")
+                .id(updatedBook.getId())
+                .title(updatedBook.getTitle())
+                .description(updatedBook.getDescription())
+                .isbn(updatedBook.getIsbn())
+                .authors(updatedBook.getAuthors().stream().map(Author::getName).collect(Collectors.toSet()))
+                .publicationYear(updatedBook.getPublicationYear())
+                .categoryName(updatedBook.getCategory().getName())
+                .build();
+        kafkaProducerService.senBookEvent(bookSyncEvent);
+        return bookMapper.toBookDetailResponse(updatedBook);
+    }
+
+    // service/implement/BookServiceImplement.java
+
+    @Override
+    @Transactional 
+    public void deleteBook(Long id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User currentUser = userRepository.findByEmail(username)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+        // 2. Tìm đối tượng Book cần xóa
+        // Do có @Where, findById sẽ chỉ tìm thấy các sách chưa bị xóa
+        Book bookToDelete = bookRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+
+
+        bookToDelete.setDeletedBy(currentUser);
+
+        // 4. Lưu lại để cập nhật 'deletedBy' trước khi 'xóa'
+        // Mặc dù @SQLDelete không dùng đến trường này, nhưng việc lưu lại là một thực hành tốt
+        // để đảm bảo trạng thái của entity là nhất quán.
+        bookRepository.save(bookToDelete);
+        if (!bookRepository.existsById(id)) {
+            throw new AppException(ErrorCode.BOOK_NOT_FOUND);
+        }
+        // 2. Thực hiện xóa
+        // Do bạn đã cấu hình cascade và khóa ngoại, Hibernate/JPA sẽ xử lý các bảng liên quan:
+        // - Xóa các bản ghi trong bảng nối `book_authors`.
+        // - Các hành động khác tùy thuộc vào `CascadeType` và `onDelete` của các quan hệ @OneToMany.
+        BookSyncEvent bookSyncEvent = BookSyncEvent.builder()
+                .evenType("DELETE")
+                .id(id)
+                .build();
+        kafkaProducerService.senBookEvent(bookSyncEvent);
+        bookRepository.deleteById(id);
+        log.info("Successfully deleted book with ID: {}", id);
+    }
+    @Override
+    @Transactional
+    public void restoreBook(Long id) {
+        log.info("Attempting to restore book with ID: {}", id);
+
+        Book bookToRestore = bookRepository.findByIdIncludeDeleted(id)
+                .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+
+
+        if (bookToRestore.getDeletedAt() == null) {
+            throw new AppException(ErrorCode.BOOK_NOT_DELETED);
+        }
+
+        // 3. Thực hiện khôi phục: Set các trường xóa mềm về giá trị ban đầu
+        bookToRestore.setDeletedAt(null);
+        bookToRestore.setDeletedBy(null);
+
+        // Lưu ý: JPA Auditing (@LastModifiedBy, @LastModifiedDate) sẽ tự động cập nhật
+        // updated_by và updated_at khi chúng ta gọi save().
+
+        // 4. Lưu lại sách đã được khôi phục vào DB
+        Book restoredBook = bookRepository.save(bookToRestore);
+        log.info("Successfully restored book with ID: {}", restoredBook.getId());
+
+        // 5. Gửi sự kiện đến Kafka để đồng bộ lại với Elasticsearch
+        BookSyncEvent bookSyncEvent = BookSyncEvent.builder()
+                .evenType("UPDATE")
+                .id(restoredBook.getId())
+                .title(restoredBook.getTitle())
+                .description(restoredBook.getDescription())
+                .isbn(restoredBook.getIsbn())
+                .authors(restoredBook.getAuthors().stream().map(Author::getName).collect(Collectors.toSet()))
+                .publicationYear(restoredBook.getPublicationYear())
+                .categoryName(restoredBook.getCategory().getName())
+                .build();
+
+        kafkaProducerService.senBookEvent(bookSyncEvent);
+        log.info("Sent restore (UPDATE) event to Kafka for book ID: {}", restoredBook.getId());
     }
 
 

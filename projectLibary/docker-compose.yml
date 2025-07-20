@@ -1,0 +1,78 @@
+# Version của file docker-compose
+version: '3.8'
+
+# Định nghĩa các services (containers)
+services:
+  # Elasticsearch Service
+  elasticsearch:
+    # Build từ Dockerfile thay vì dùng image có sẵn
+    build:
+      context: ./elasticsearch
+    container_name: library-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - library_network
+
+    # 3. Redis Service
+  redis:
+    image: redis:7-alpine
+    container_name: library-redis
+    ports:
+      # Ánh xạ cổng 6379 của Redis
+      - "6379:6379"
+    volumes:
+      - redis_data:/data # Lưu trữ dữ liệu của Redis
+    networks:
+      - library_network
+
+  # 4. Zookeeper Service (Bắt buộc cho Kafka)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: library-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - library_network
+
+  # 5. Kafka Service
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: library-kafka
+    # Kafka phụ thuộc vào Zookeeper, nó sẽ đợi Zookeeper khởi động xong
+    depends_on:
+      - zookeeper
+    ports:
+      # Cổng 9092 dùng để Spring Boot kết nối từ máy host
+      - "9092:9092"
+      # Cổng 29092 dùng cho các service khác trong cùng mạng Docker giao tiếp với Kafka
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      # Cấu hình listener cho Kafka
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    networks:
+      - library_network
+
+# Định nghĩa các volumes để lưu trữ dữ liệu
+volumes:
+  mysql_data:
+  es_data:
+  redis_data:
+
+# Định nghĩa một mạng chung để các container có thể giao tiếp với nhau qua tên service
+networks:
+  library_network:
+    driver: bridge

@@ -56,7 +56,7 @@ public class BookController {
     }
 
     @GetMapping("/book/best-books")
-//    @PreAuthorize("hasRole('STUDENT')")
+//   @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<ResponseData<PageResponse<BookSummaryResponse>>> getTopRatedBooksOfEachAuthor(@RequestParam(defaultValue = "0") int page,
                                                                                                         @RequestParam(defaultValue = "12") int size){
         PageResponse<BookSummaryResponse> bestBooks= bookService.getTopRatedBookOfEachAuthor(page,size);
@@ -103,18 +103,6 @@ public class BookController {
         ResponseData<PageResponse<BookSummaryResponse>> responseData =new ResponseData<>(200,"Success",pageResponse);
         return ResponseEntity.ok(responseData);
     }
-    @GetMapping("/post")
-    public ResponseEntity<ResponseData<PageResponse<NewsSummaryResponse>>> getAllPost(@RequestParam (defaultValue = "0") int page,
-                                                                                 @RequestParam(defaultValue = "18") int size){
-        PageResponse<NewsSummaryResponse> pageResponse = newsService.getAllNew(page,size);
-        ResponseData<PageResponse<NewsSummaryResponse>> responseData = new ResponseData<>(200,"Success",pageResponse);
-        return ResponseEntity.ok(responseData);
-    }
-    @GetMapping("/post/{id}")
-    public ResponseEntity<ResponseData<NewsDetailResponse>> getPostById(@PathVariable("id") long id){
-        NewsDetailResponse newById = newsService.getNewById(id);
-        ResponseData<NewsDetailResponse> responseData = new ResponseData<>(200,"Success",newById);
-        return ResponseEntity.ok(responseData);
-    }
+
 
 }

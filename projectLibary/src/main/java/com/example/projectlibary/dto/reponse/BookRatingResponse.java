@@ -12,4 +12,5 @@ import lombok.Setter;
 public class BookRatingResponse {
     private Long bookId;
     private double rating;
+
 }
