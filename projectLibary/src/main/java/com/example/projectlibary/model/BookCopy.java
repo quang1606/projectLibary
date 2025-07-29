@@ -41,6 +41,8 @@ public class BookCopy extends AbstractEntity {
     @Column(name = "added_date")
     private LocalDate addedDate;
 
+
+
     @CreatedBy
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", updatable = false, foreignKey = @ForeignKey(name = "fk_bookcopies_created_by",
@@ -53,13 +55,8 @@ public class BookCopy extends AbstractEntity {
             foreignKeyDefinition = "FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE"))
     private User updatedBy;
 
-    @OneToOne(mappedBy = "bookCopy", cascade = CascadeType.ALL, orphanRemoval = true)
-    private PendingBorrow pendingBorrow;
-
     @OneToMany(mappedBy = "bookCopy")
     private Set<BookLoan> bookLoans;
-
-
 
 }
 

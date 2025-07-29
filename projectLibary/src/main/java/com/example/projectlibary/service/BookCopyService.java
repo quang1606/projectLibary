@@ -18,4 +18,6 @@ public interface BookCopyService {
     BookCopyResponse updateBookCopies(@Valid UpdateBookCopyRequest request, Long id);
 
     void deleteBookCopies(Long id);
+
+    String getQRCodeImage(Long copyId);
 }

@@ -8,6 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class UserRegistrationEvent {
+    private String event;
     private Long userId;
     private String email;
     private String appUrl;

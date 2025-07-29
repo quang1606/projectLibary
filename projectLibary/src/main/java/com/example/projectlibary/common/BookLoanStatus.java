@@ -4,5 +4,6 @@ public enum BookLoanStatus {
     BORROWED,
     RETURNED,
     OVERDUE,
-    LOST
+    LOST,
+    PENDING_RETURN,
 }

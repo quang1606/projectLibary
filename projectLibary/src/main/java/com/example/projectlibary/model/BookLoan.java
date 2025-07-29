@@ -1,5 +1,6 @@
 package com.example.projectlibary.model;
 import com.example.projectlibary.common.BookLoanStatus;
+import com.example.projectlibary.common.ReturnCondition;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedBy;
@@ -44,15 +45,20 @@ public class BookLoan extends AbstractEntity {
     private LocalDateTime librarianConfirmedReturnAt; // Thời điểm Thủ thư xác nhận trả sách OK/Hỏng
 
     @Column(name = "fine_amount", nullable = false, precision = 10, scale = 2)
+    @Builder.Default
     private BigDecimal fineAmount = BigDecimal.ZERO; // Tiền phạt
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private BookLoanStatus status = BookLoanStatus.BORROWED; // Cập nhật khi Thủ thư xác nhận trả/báo mất
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "return_condition")
+    private ReturnCondition returnCondition;
+
     @Lob
-    @Column(name = "return_condition", columnDefinition = "TEXT")
-    private String returnCondition; // Ghi chú tình trạng sách khi Thủ thư xác nhận trả
+    @Column(name = "return_notes", columnDefinition = "TEXT")
+    private String returnNotes;
 
     @Column(name = "return_shelf_location", length = 100)
     private String returnShelfLocation; // Vị trí kệ SV quét khi trả (nếu có)

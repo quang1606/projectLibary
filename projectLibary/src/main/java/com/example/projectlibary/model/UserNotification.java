@@ -5,8 +5,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Getter
@@ -52,11 +50,4 @@ public class UserNotification {
     @CreatedDate
     private LocalDateTime createdAt;
 
-    @PrePersist
-    protected void onPrePersist() {
-        if (this.sentAt == null) {
-            this.sentAt = LocalDateTime.now();
-        }
-
-    }
 }

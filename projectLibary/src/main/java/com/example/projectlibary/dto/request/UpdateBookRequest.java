@@ -10,40 +10,39 @@ import java.util.Set;
 @Getter
 @Setter
 public class UpdateBookRequest {
-    @NotBlank(message = "Title not blank")
-    @Size(max = 255,message = "Title cannot exceed 255 characters")
+    // Tiêu đề: Có thể cập nhật, nhưng không được rỗng nếu được cung cấp
+    @Size(max = 255, message = "Title cannot exceed 255 characters")
     private String title;
-    @NotBlank(message = "Description cannot be blank")
+
+    // Mô tả: Có thể cập nhật
     private String description;
 
-    @NotBlank(message = "ISBN cannot be blank")
+    // ISBN: Có thể cập nhật, phải tuân thủ kích thước
     @Size(max = 20, message = "ISBN cannot exceed 20 characters")
     private String isbn;
 
-    @NotNull(message = "Category ID cannot be null")
-    private Long categoryId; // Chỉ cần nhận ID của thể loại
+    // ID Thể loại: Cập nhật bằng cách cung cấp ID mới
+    private Long categoryId;
 
+    // Nhà xuất bản: Có thể cập nhật
     @Size(max = 255, message = "Publisher cannot exceed 255 characters")
     private String publisher;
 
-    @NotNull(message = "Publication year cannot be null")
+    // Năm xuất bản: Cập nhật với các ràng buộc về năm hợp lệ
     @Min(value = 1000, message = "Publication year must be a valid year")
     @Max(value = 9999, message = "Publication year must be a valid year")
     private Integer publicationYear;
 
-    // (Tùy chọn) URL đến ảnh bìa, có thể là null
-    private String thumbnail;
-
-    // (Tùy chọn) URL đến ebook, có thể là null
-    @Size(max = 512, message = "Ebook URL cannot exceed 512 characters")
-    private String ebookUrl;
-
-    @NotNull(message = "Replacement cost cannot be null")
+    // Chi phí đền bù: Cập nhật với các ràng buộc về giá trị
     @DecimalMin(value = "0.0", inclusive = false, message = "Replacement cost must be greater than 0")
     @Digits(integer = 8, fraction = 2, message = "Invalid format for replacement cost")
     private BigDecimal replacementCost;
 
-    @NotEmpty(message = "A book must have at least one author")
-    private Set<Long> authorIds; // Chỉ cần nhận một danh sách các ID của tác giả
+    // Danh sách ID tác giả: Cập nhật bằng cách cung cấp một danh sách ID mới
+    // Có thể là danh sách rỗng để xóa tất cả tác giả, nhưng không được là null
+    private Set<Long> authorIds;
+
+    // Lưu ý: Các file (thumbnail, ebook) không được đưa vào DTO này.
+    // Chúng sẽ được xử lý riêng dưới dạng MultipartFile trong Controller.
 }
 

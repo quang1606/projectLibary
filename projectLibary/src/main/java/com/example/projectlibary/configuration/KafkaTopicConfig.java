@@ -16,4 +16,12 @@ public class KafkaTopicConfig {
     public NewTopic bookEventsTopic(){
         return TopicBuilder.name("book-events").partitions(1).replicas(1).build();
     }
+    @Bean
+    public NewTopic bookEventTopic(){
+        return TopicBuilder.name("loan-confirmation-events").partitions(1).replicas(1).build();
+    }
+     @Bean
+    public NewTopic borrowingCartTopic(){
+        return TopicBuilder.name("bookcopy-change-events").partitions(1).replicas(1).build();
+     }
 }

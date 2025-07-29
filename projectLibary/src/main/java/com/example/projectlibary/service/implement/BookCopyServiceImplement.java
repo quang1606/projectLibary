@@ -5,6 +5,7 @@ import com.example.projectlibary.dto.reponse.BookCopyResponse;
 import com.example.projectlibary.dto.reponse.PageResponse;
 import com.example.projectlibary.dto.request.CreateBookCopyRequest;
 import com.example.projectlibary.dto.request.UpdateBookCopyRequest;
+import com.example.projectlibary.event.BookStatusChangedEvent;
 import com.example.projectlibary.exception.AppException;
 import com.example.projectlibary.exception.ErrorCode;
 import com.example.projectlibary.mapper.BookCopyMapper;
@@ -15,6 +16,8 @@ import com.example.projectlibary.repository.BookCopyRepository;
 import com.example.projectlibary.repository.BookRepository;
 import com.example.projectlibary.repository.UserRepository;
 import com.example.projectlibary.service.BookCopyService;
+import com.example.projectlibary.service.eventservice.KafkaProducerService;
+import com.example.projectlibary.utils.QRCodeUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +28,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -37,8 +41,10 @@ private final UserRepository userRepository;
 private final BookRepository bookRepository;
     private final BookCopyRepository bookCopyRepository;
     private final BookCopyMapper bookCopyMapper;
-
+    private final QRCodeUtil qrCodeUtil;
+    private final KafkaProducerService kafkaProducerService;
     @Override
+    @Transactional
     public List<BookCopyResponse> createBookCopies(CreateBookCopyRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
@@ -47,7 +53,7 @@ private final BookRepository bookRepository;
         List<BookCopy> bookCopies = new ArrayList<>();
         for (int i=0; i< request.getNumberOfCopies();i++){
             String uniqueCopyNumber = generateUniqueCopyNumber(book.getIsbn());
-            String uniqueQrCode = generateUniqueQrCode(uniqueCopyNumber);
+            String uniqueQrCode = uniqueCopyNumber;
             BookCopy bookCopy = BookCopy.builder()
                     .book(book)
                     .copyNumber(uniqueCopyNumber)
@@ -59,6 +65,15 @@ private final BookRepository bookRepository;
             bookCopies.add(bookCopy);
         }
         List<BookCopy> copies = bookCopyRepository.saveAll(bookCopies);
+        if (!copies.isEmpty()) {
+            // Chỉ cần gửi một event duy nhất cho đầu sách gốc
+            BookStatusChangedEvent event = BookStatusChangedEvent.builder()
+                    .bookId(book.getId())
+                    .userId(user.getId())
+                    .addedAt(LocalDateTime.now())
+                    .build();
+            kafkaProducerService.sendBookCopyId(event); // Giả sử có hàm này
+        }
 
         return bookCopyMapper.toBookCopyResponseList(copies);
     }
@@ -72,6 +87,7 @@ private final BookRepository bookRepository;
     }
 
     @Override
+    @Transactional
     public BookCopyResponse updateBookCopies(UpdateBookCopyRequest request, Long id) {
 
         BookCopy bookCopy = bookCopyRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.BOOK_COPY_NOT_FOUND));
@@ -90,6 +106,9 @@ private final BookRepository bookRepository;
     @Override
     @Transactional
     public void deleteBookCopies(Long copyId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userRepository.findByEmail(username).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
         // 1. Tìm bản sao sách
         BookCopy bookCopyToDelete = bookCopyRepository.findById(copyId)
                 .orElseThrow(() -> new AppException(ErrorCode.BOOK_COPY_NOT_FOUND));
@@ -99,13 +118,8 @@ private final BookRepository bookRepository;
             throw new AppException(ErrorCode.CANNOT_DELETE_COPY_BORROWED);
         }
 
-        if (bookCopyToDelete.getStatus() == BookCopyStatus.RESERVED) {
+        if (bookCopyToDelete.getStatus() == BookCopyStatus.IN_CART) {
             throw new AppException(ErrorCode.CANNOT_DELETE_COPY_RESERVED);
-        }
-
-        // (Tùy chọn) Kiểm tra xem có ai đang giữ yêu cầu mượn không
-        if (bookCopyToDelete.getPendingBorrow() != null) {
-            throw new AppException(ErrorCode.CANNOT_DELETE_COPY_PENDING);
         }
 
         // 3. Nếu tất cả kiểm tra đều qua, thực hiện "xóa mềm"
@@ -114,8 +128,22 @@ private final BookRepository bookRepository;
         bookCopyToDelete.setLocation("N/A"); // (Tùy chọn) Xóa vị trí
 
         bookCopyRepository.save(bookCopyToDelete);
+        BookStatusChangedEvent event = BookStatusChangedEvent.builder()
+                .bookId(bookCopyToDelete.getId())
+                .userId(user.getId())
+                .addedAt(LocalDateTime.now())
+                .build();
+        kafkaProducerService.sendBookCopyId(event); // Giả sử có hàm này
 
         log.info("Successfully soft-deleted (discarded) book copy with ID: {}", copyId);
+    }
+
+    @Override
+    public String getQRCodeImage(Long copyId) {
+        BookCopy bookCopy = bookCopyRepository.findById(copyId).orElseThrow(() -> new AppException(ErrorCode.BOOK_COPY_NOT_FOUND));
+        String qrData = bookCopy.getQrCode(); // Lấy dữ liệu đã lưu
+        return qrCodeUtil.generateQRCodeBase64(qrData, 200, 200);
+
     }
 
 
@@ -137,18 +165,6 @@ private final BookRepository bookRepository;
         return potentialCopyNumber;
     }
 
-    /**
-     * Sinh ra mã QR.
-     * Trong thực tế, mã QR thường là một URL hoặc một chuỗi JSON chứa thông tin.
-     * Ở đây, chúng ta có thể đơn giản là dùng lại copyNumber hoặc tạo một UUID mới.
-     */
-    private String generateUniqueQrCode(String copyNumber) {
-        // Cách an toàn nhất: Dùng một UUID hoàn toàn mới để tránh lộ thông tin
-        String potentialQrCode;
-        do {
-            potentialQrCode = UUID.randomUUID().toString();
-        } while (bookCopyRepository.existsByQrCode(potentialQrCode)); // Kiểm tra sự tồn tại
 
-        return potentialQrCode;
-    }
+
 }

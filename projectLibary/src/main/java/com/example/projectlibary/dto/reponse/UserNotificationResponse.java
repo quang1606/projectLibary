@@ -4,9 +4,11 @@ import com.example.projectlibary.common.NotificationType;
 import lombok.*;
 
 import java.time.LocalDateTime;
-
+@Getter
+@Setter
 @Builder
-@Value
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserNotificationResponse {
      Long id;
      String message;

@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Entity
 @Builder
 @Table(name = "payments")
-public class Payment extends AbstractEntity { // AbstractEntity provides createdAt, updatedAt
+public class Payment extends AbstractEntity {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_payments_user",

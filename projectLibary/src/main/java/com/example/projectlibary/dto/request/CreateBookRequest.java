@@ -31,13 +31,6 @@ public class CreateBookRequest {
     @Max(value = 9999, message = "Publication year must be a valid year")
     private Integer publicationYear;
 
-    // (Tùy chọn) URL đến ảnh bìa, có thể là null
-    private String thumbnail;
-
-    // (Tùy chọn) URL đến ebook, có thể là null
-    @Size(max = 512, message = "Ebook URL cannot exceed 512 characters")
-    private String ebookUrl;
-
     @NotNull(message = "Replacement cost cannot be null")
     @DecimalMin(value = "0.0", inclusive = false, message = "Replacement cost must be greater than 0")
     @Digits(integer = 8, fraction = 2, message = "Invalid format for replacement cost")

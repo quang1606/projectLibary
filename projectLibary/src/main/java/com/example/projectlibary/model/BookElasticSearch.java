@@ -29,6 +29,8 @@ public class BookElasticSearch implements Serializable {
     private String isbn;
     @Field(name = "description",type = FieldType.Text,analyzer = "vietnamese_analyzer",searchAnalyzer = "vietnamese_analyzer")
     private String description;
+    @Field(name = "available_copy_count", type = FieldType.Integer)
+    private Integer availableCopyCount;
     // Lưu một danh sách tên tác giả, hỗ trợ tìm kiếm theo nhiều tác giả
     @Field(name = "authors", type = FieldType.Text, analyzer = "vietnamese_analyzer", searchAnalyzer = "vietnamese_analyzer")
     private Set<String> authors;

@@ -1,17 +1,14 @@
 package com.example.projectlibary.common;
 
 public enum NotificationType {
-    RESERVATION_AVAILABLE,
-    DUE_DATE_REMINDER,
-    OVERDUE_NOTICE,
-    NEW_BOOK,
-    EVENT,
-    GENERAL,
-    BORROW_EXPIRED,
-    RETURN_CONFIRMED,
-    FINE_ISSUED,
-    RETURN_INITIATED_SAME_DAY_REMINDER,
-    RETURN_CONFIRMATION_EXPIRED,
-    RETURN_LIBRARIAN_CONFIRMED_OK,
-    RETURN_LIBRARIAN_CONFIRMED_DAMAGED
+    RESERVATION_AVAILABLE,               // Thông báo sách đặt trước đã sẵn sàng
+    DUE_DATE_REMINDER,                   // Nhắc nhở sắp đến hạn trả sách
+    OVERDUE_NOTICE,                      // Thông báo quá hạn trả sách
+    NEW_BOOK,                            // Thông báo sách mới
+    EVENT,                               // Thông báo sự kiện
+    GENERAL,                             // Thông báo chung
+    BORROW_EXPIRED,                      // Thông báo mượn sách đã hết hạn
+    RETURN_CONFIRMED,                    // Xác nhận đã trả sách
+    FINE_ISSUED,                         // Thông báo phạt đã được ghi nhận
+
 }

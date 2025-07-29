@@ -1,7 +1,6 @@
 package com.example.projectlibary.service.implement;
 
 import com.example.projectlibary.common.UserRole;
-import com.example.projectlibary.configuration.SecurityConfig;
 import com.example.projectlibary.dto.reponse.LoginResponse;
 import com.example.projectlibary.dto.reponse.RefreshTokenResponse;
 import com.example.projectlibary.dto.reponse.UserResponse;
@@ -17,16 +16,14 @@ import com.example.projectlibary.model.VerificationTokens;
 import com.example.projectlibary.repository.UserRepository;
 import com.example.projectlibary.repository.VerificationTokensRepository;
 import com.example.projectlibary.service.AuthenticationService;
-import com.example.projectlibary.service.KafkaProducerService;
+import com.example.projectlibary.service.eventservice.KafkaProducerService;
 import com.example.projectlibary.service.RefreshTokenService;
 import com.example.projectlibary.service.TokenBlacklistService;
 import com.example.projectlibary.utils.JwtTokenUtil;
-import io.netty.util.internal.StringUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
@@ -40,7 +37,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.Calendar;
 import java.util.Optional;
 
 @Service
@@ -130,6 +126,7 @@ public class AuthenticationServiceImplement implements AuthenticationService {
         try {
             String appUrl = getAppUrl(request);
             UserRegistrationEvent event = UserRegistrationEvent.builder()
+                    .event("REGISTER")
                     .userId(saveUser.getId())
                     .email(saveUser.getEmail())
                     .appUrl(appUrl)
@@ -159,6 +156,13 @@ public class AuthenticationServiceImplement implements AuthenticationService {
             verificationTokensRepository.delete(verificationTokens);
             throw new AppException(ErrorCode.EXPIRED_VERIFICATION_TOKEN);
         }
+
+        UserRegistrationEvent event = UserRegistrationEvent.builder()
+                .event("VERIFY")
+                .userId(user.getId())
+                .email(user.getEmail())
+                .build();
+        kafkaProducerService.sendUserRegistrationEvent(event);
 
         user.setActive(true);
         userRepository.save(user);

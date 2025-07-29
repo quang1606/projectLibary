@@ -15,6 +15,7 @@ public class BookSyncEvent {
     private String title;
     private String isbn;
     private String description;
+    private Integer availableCopyCount;
     private Set<String> authors;
     private Integer publicationYear;
     private String categoryName;

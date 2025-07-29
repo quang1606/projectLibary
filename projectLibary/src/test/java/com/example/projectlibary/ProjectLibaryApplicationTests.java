@@ -47,7 +47,7 @@ private BookElasticSearchRepository bookElasticSearchRepository;
     @Test
     void generate_fake_users() {
         Faker faker = new Faker();
-        for (int i = 0; i < 1; i++) {
+        for (int i = 0; i < 100; i++) {
             String fullName = faker.name().fullName();
             String username;
             do {
@@ -79,7 +79,7 @@ private BookElasticSearchRepository bookElasticSearchRepository;
                     .studentId(studentId)
                     .phoneNumber(phoneNumber)
                     .avatar("https://placehold.co/600x400?text="+fullName.substring(0,1).toLowerCase())
-                    .role(i < 5 ? UserRole.ADMIN : (i < 20 ? UserRole.LIBRARIAN : UserRole.STUDENT))
+                    .role(i < 1 ? UserRole.ADMIN : (i < 10 ? UserRole.LIBRARIAN : UserRole.STUDENT))
                     .isActive(true)
                     .build();
 
@@ -199,7 +199,7 @@ private BookElasticSearchRepository bookElasticSearchRepository;
             return;
         }
 
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < 400; i++) {
             // Tạo ISBN duy nhất
             String isbn;
             do {
@@ -239,12 +239,13 @@ private BookElasticSearchRepository bookElasticSearchRepository;
             Set<String> authorNames = savedBook.getAuthors().stream()
                     .map(Author::getName)
                     .collect(Collectors.toSet());
-
+            int count =0;
             BookElasticSearch bookEs = BookElasticSearch.builder()
                     .id(savedBook.getId()) // Dùng ID từ sách đã lưu trong SQL
                     .title(savedBook.getTitle())
                     .description(savedBook.getDescription())
                     .isbn(savedBook.getIsbn())
+                    .availableCopyCount(count)
                     .authors(authorNames)
                     .publicationYear(savedBook.getPublicationYear())
                     .categoryName(savedBook.getCategory().getName())
@@ -334,9 +335,7 @@ private BookElasticSearchRepository bookElasticSearchRepository;
         if (randomNum <= 60) {
             return BookCopyStatus.AVAILABLE;
         } else if (randomNum <= 75) {
-            return BookCopyStatus.PENDING;
-        } else if (randomNum <= 85) {
-            return BookCopyStatus.RESERVED;
+            return BookCopyStatus.IN_CART;
         } else if (randomNum <= 90) {
             return BookCopyStatus.BORROWED;
         } else if (randomNum <= 98) {

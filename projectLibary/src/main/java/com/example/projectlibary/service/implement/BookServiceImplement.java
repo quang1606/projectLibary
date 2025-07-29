@@ -14,8 +14,9 @@ import com.example.projectlibary.mapper.BookMapper;
 import com.example.projectlibary.model.*;
 import com.example.projectlibary.repository.*;
 import com.example.projectlibary.service.BookService;
+import com.example.projectlibary.service.BookSpecification;
 import com.example.projectlibary.service.CloudinaryService;
-import com.example.projectlibary.service.KafkaProducerService;
+import com.example.projectlibary.service.eventservice.KafkaProducerService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -239,7 +240,7 @@ public class BookServiceImplement implements BookService {
                 }
             }
             Pageable pageable = PageRequest.of(page, size);
-            Specification<Book> specification =BookSpecification.fromCriteria(searchCriteria);
+            Specification<Book> specification = BookSpecification.fromCriteria(searchCriteria);
             Page<Book> books = bookRepository.findAll(specification, pageable);
             List<BookSummaryResponse> bookSummaryResponses = bookMapper.toSummaryResponseList(books.getContent());
             enrichSummariesWithLoanCounts(bookSummaryResponses);
@@ -324,13 +325,14 @@ public class BookServiceImplement implements BookService {
 
         Book savedBook = bookRepository.save(newBook);
         log.info("Successfully created book with ID: {}", savedBook.getId());
-
+        int initialAvailableCopies = 0;
         BookSyncEvent bookSyncEvent = BookSyncEvent.builder()
                 .evenType("CREATE")
                 .id(savedBook.getId())
                 .title(savedBook.getTitle())
                 .description(savedBook.getDescription())
                 .isbn(savedBook.getIsbn())
+                .availableCopyCount(initialAvailableCopies)
                 .authors(savedBook.getAuthors().stream().map(Author::getName).collect(Collectors.toSet()))
                 .publicationYear(savedBook.getPublicationYear())
                 .categoryName(savedBook.getCategory().getName())
