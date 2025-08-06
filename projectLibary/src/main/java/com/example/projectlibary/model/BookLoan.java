@@ -50,7 +50,7 @@ public class BookLoan extends AbstractEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private BookLoanStatus status = BookLoanStatus.BORROWED; // Cập nhật khi Thủ thư xác nhận trả/báo mất
+    private BookLoanStatus status = BookLoanStatus.ON_LOAN; // Cập nhật khi Thủ thư xác nhận trả/báo mất
 
     @Enumerated(EnumType.STRING)
     @Column(name = "return_condition")
@@ -67,6 +67,9 @@ public class BookLoan extends AbstractEntity {
     @JoinColumn(name = "librarian_id", foreignKey = @ForeignKey(name = "fk_bookloans_librarian",
             foreignKeyDefinition = "FOREIGN KEY (librarian_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE"))
     private User librarian; // Thủ thư xử lý xác nhận mượn/trả
+
+    @Column(name = "is_reminder_sent", nullable = false)
+    private boolean reminderSent = false;
 
     @CreatedBy
     @ManyToOne(fetch = FetchType.LAZY)

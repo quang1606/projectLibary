@@ -1,5 +1,4 @@
-# Version của file docker-compose
-version: '3.8'
+
 
 # Định nghĩa các services (containers)
 services:
@@ -7,7 +6,8 @@ services:
   elasticsearch:
     # Build từ Dockerfile thay vì dùng image có sẵn
     build:
-      context: ./elasticsearch
+      context: .
+      dockerfile: Dockerfile
     container_name: library-elasticsearch
     environment:
       - discovery.type=single-node

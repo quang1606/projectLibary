@@ -15,4 +15,6 @@ public interface ReturnService {
     BookLoanResponse getBookLoanByCopy(long id);
 
     BookLoanResponse finalizeReturn(@Valid FinalizeReturnRequest request);
+
+    BookLoanResponse lostBook(Long loanId);
 }

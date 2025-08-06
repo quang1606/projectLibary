@@ -5,5 +5,6 @@ public enum BorrowingCartStatus {
     EXPIRED,   // Đã hết hạn
     COMPLETED, // Đã được xác nhận mượn thành công
     CANCELLED,  // Sinh viên tự hủy
-    PROCESSING
+    PROCESSING,
+    PENDING_CONFIRMATION
 }

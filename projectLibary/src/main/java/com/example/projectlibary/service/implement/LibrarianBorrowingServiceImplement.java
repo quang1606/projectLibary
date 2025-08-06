@@ -1,5 +1,6 @@
 package com.example.projectlibary.service.implement;
 
+import com.example.projectlibary.common.BookCopyStatus;
 import com.example.projectlibary.common.BorrowingCartStatus;
 import com.example.projectlibary.dto.reponse.BorrowingCartResponse;
 import com.example.projectlibary.dto.request.ConfirmLoanRequest;
@@ -17,12 +18,15 @@ import com.example.projectlibary.repository.BorrowingCartRepository;
 import com.example.projectlibary.repository.UserRepository;
 import com.example.projectlibary.service.eventservice.KafkaProducerService;
 import com.example.projectlibary.service.LibrarianBorrowingService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -32,23 +36,58 @@ public class LibrarianBorrowingServiceImplement implements LibrarianBorrowingSer
     private final BookCopyRepository bookCopyRepository;
     private final UserRepository userRepository;
     private final KafkaProducerService kafkaProducerService;
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void borrowingCart() {
+        List<BorrowingCart> borrowingCarts = borrowingCartRepository.findByStatusAndExpiresAtBefore(BorrowingCartStatus.ACTIVE, LocalDateTime.now());
+        if (!borrowingCarts.isEmpty()) {
+            for (BorrowingCart borrowingCart : borrowingCarts) {
+                expireCart(borrowingCart);
+            }
+        }
+        List<BorrowingCart> expiredPendingCarts = borrowingCartRepository
+                .findByStatusAndConfirmationCodeExpiresAtBefore(BorrowingCartStatus.PENDING_CONFIRMATION, LocalDateTime.now());
+        if(!expiredPendingCarts.isEmpty()) {
+            for (BorrowingCart borrowingCart : expiredPendingCarts) {
+                revertCartToActive(borrowingCart);
+            }
+        }
+    }
+
     @Override
     public BorrowingCartResponse getCartForVerificationCode(ConfirmLoanRequest confirmationCode) {
         BorrowingCart cart = findActiveCartByCode(confirmationCode);
         if(cart.getConfirmationCodeExpiresAt().isBefore(LocalDateTime.now())){
-
+            revertCartToActive(cart);
             throw new AppException(ErrorCode.EXPIRED_VERIFICATION_TOKEN);
         }
         return borrowingCartMapper.toBorrowingCartResponse(cart);
     }
+    private void expireCart(BorrowingCart cart) {
+        cart.setStatus(BorrowingCartStatus.EXPIRED);
+        cart.getItems().forEach(item -> item.getBookCopy().setStatus(BookCopyStatus.AVAILABLE));
+        borrowingCartRepository.save(cart);
+    }
+
+
+    private void revertCartToActive(BorrowingCart cart) {
+        cart.getItems().forEach(item -> item.getBookCopy().setStatus(BookCopyStatus.AVAILABLE));
+        cart.setStatus(BorrowingCartStatus.ACTIVE);
+        cart.setConfirmationCode(null);
+        cart.setConfirmationCodeExpiresAt(null);
+        borrowingCartRepository.save(cart);
+    }
 
     @Override
+    @Transactional
     public BorrowingCartResponse verifyCartItem(VerifyCartItemRequest verifyCartItemRequest, String id) {
         BorrowingCart cart = borrowingCartRepository.findByConfirmationCode(id)
                 .orElseThrow(()->new AppException(ErrorCode.BORROWING_CART_NOT_FOUND));
         if(cart.getConfirmationCodeExpiresAt().isBefore(LocalDateTime.now())){
+            revertCartToActive(cart);
             throw new AppException(ErrorCode.EXPIRED_VERIFICATION_TOKEN);
         }
+        cart.setStatus(BorrowingCartStatus.PROCESSING);
         BookCopy bookCopy = bookCopyRepository.findByQrCode(verifyCartItemRequest.getQrCode())
                 .orElseThrow(()->new AppException(ErrorCode.BOOK_COPY_NOT_FOUND));
         BorrowingCartItem borrowingCartItem = cart.getItems().stream()
@@ -64,15 +103,17 @@ public class LibrarianBorrowingServiceImplement implements LibrarianBorrowingSer
     }
 
     @Override
+
     public void completeLoanSession(Long cartId) {
         User user = getCurrentUser();
         BorrowingCart cart = borrowingCartRepository.findById(cartId)
                 .orElseThrow(()->new AppException(ErrorCode.BORROWING_CART_NOT_FOUND));
         boolean cartItem = cart.getItems().stream().anyMatch(BorrowingCartItem::isVerifiedByLibrarian);
         if(!cartItem){
+            revertCartToActive(cart);
             throw new AppException(ErrorCode.NO_ITEMS_VERIFIED);
         }
-        cart.setStatus(BorrowingCartStatus.PROCESSING);
+
         borrowingCartRepository.save(cart);
         LoanConfirmationEvent event = LoanConfirmationEvent.builder()
                 .cartId(cart.getId())

@@ -115,7 +115,7 @@ public class BorrowingServiceImplement implements BorrowingService {
         String code = generateRandomNumericString(6);
         // Tạo QR code ảnh base64 từ code
         String qrCodeImageBase64 = qrCodeUtil.generateQRCodeBase64(code,150,150);
-        cart.setStatus(BorrowingCartStatus.PROCESSING);
+        cart.setStatus(BorrowingCartStatus.PENDING_CONFIRMATION);
         cart.setConfirmationCode(code);
         cart.setConfirmationCodeExpiresAt(LocalDateTime.now().plusMinutes(CONFIRMATION_CODE_EXPIRATION_MINUTES));
         BorrowingCart savedCart = borrowingCartRepository.save(cart);

@@ -22,6 +22,20 @@ public class KafkaTopicConfig {
     }
      @Bean
     public NewTopic borrowingCartTopic(){
-        return TopicBuilder.name("bookcopy-change-events").partitions(1).replicas(1).build();
+        return TopicBuilder.name("book-status-changed-events").partitions(1).replicas(1).build();
      }
+     @Bean
+     public NewTopic fineIssuedEventTopic(){
+        return TopicBuilder.name("fine-issued-events").partitions(1).replicas(1).build();
+     }
+     @Bean
+    public NewTopic borrowingOrderTopic(){
+        return TopicBuilder.name("payments-completed-events").partitions(1).replicas(1).build();
+     }
+
+     @Bean
+    public NewTopic paymentsTopic(){
+        return TopicBuilder.name("forgot-password-events").partitions(1).replicas(1).build();
+     }
+
 }

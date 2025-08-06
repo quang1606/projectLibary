@@ -4,11 +4,14 @@ import com.example.projectlibary.dto.reponse.LoginResponse;
 import com.example.projectlibary.dto.reponse.RefreshTokenResponse;
 import com.example.projectlibary.dto.reponse.ResponseData;
 import com.example.projectlibary.dto.reponse.UserResponse;
+import com.example.projectlibary.dto.request.ForgotPasswordRequest;
 import com.example.projectlibary.dto.request.LoginRequest;
 import com.example.projectlibary.dto.request.RegistrationRequest;
+import com.example.projectlibary.dto.request.RestPasswordRequest;
 import com.example.projectlibary.service.AuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +40,7 @@ public class AuthController {
         return ResponseEntity.ok("Logged out successfully.");
     }
     @PostMapping("/registration")
-    public ResponseEntity<ResponseData<UserResponse>> register(@RequestBody RegistrationRequest registrationRequest, HttpServletRequest request) {
+    public ResponseEntity<ResponseData<UserResponse>> register(@Valid @RequestBody RegistrationRequest registrationRequest, HttpServletRequest request) {
        UserResponse userResponse= authenticationService.register(registrationRequest,request);
        ResponseData<UserResponse> data = new ResponseData<>(200,"success",userResponse);
        return ResponseEntity.ok(data);
@@ -51,6 +54,17 @@ public class AuthController {
             return ResponseEntity.ok("Account activated successfully.");
         }
         return ResponseEntity.badRequest().body(result); // Trả về "invalidToken" hoặc "expiredToken"
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest forgotPasswordRequest, HttpServletRequest request) {
+        authenticationService.forgotPassword(forgotPasswordRequest,request);
+        return ResponseEntity.ok("Forgot password activated successfully.");
+    }
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> restPassword(@Valid @RequestBody RestPasswordRequest restPasswordRequest, @RequestParam("token") String token) {
+        authenticationService.restPassword(restPasswordRequest,token);
+        return ResponseEntity.ok("Rest password activated successfully.");
     }
 
 }

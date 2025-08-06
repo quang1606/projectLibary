@@ -11,11 +11,12 @@ public enum ErrorCode {
     USER_NOT_FOUND(1004, "Người dùng không tìm thấy", HttpStatus.NOT_FOUND),
     USER_ALREADY_EXIST(1005, "Người dùng đã tồn tại", HttpStatus.CONFLICT),
     REVIEW_ALREADY_EXISTS(1006, "Đánh giá đã tồn tại", HttpStatus.CONFLICT),
-    REVIEW_NOT_FOUND(107, "Đánh giá không tìm thấy", HttpStatus.NOT_FOUND),
-    FILE_UPLOAD_ERROR(108, "Lỗi tải lên tệp", HttpStatus.INTERNAL_SERVER_ERROR),
-    BOOK_NOT_DELETED(109,"Sách không ở trạng thái bị xóa" , HttpStatus.BAD_REQUEST ),
-    NOTIFICATION_NOT_FOUND(110,"Không tìm thấy thông báo", HttpStatus.NOT_FOUND ),
-            // === Lỗi liên quan đến Sách, Tác giả, Thể loại (Nhóm 2xxx) ===
+    REVIEW_NOT_FOUND(1007, "Đánh giá không tìm thấy", HttpStatus.NOT_FOUND),
+    FILE_UPLOAD_ERROR(1008, "Lỗi tải lên tệp", HttpStatus.INTERNAL_SERVER_ERROR),
+    BOOK_NOT_DELETED(1009,"Sách không ở trạng thái bị xóa" , HttpStatus.BAD_REQUEST ),
+    NOTIFICATION_NOT_FOUND(1010,"Không tìm thấy thông báo", HttpStatus.NOT_FOUND ),
+    INVALID_PAYMENT_REQUEST(1011,"Yêu cầu thanh toán không hợp lệ", HttpStatus.BAD_REQUEST),
+    // === Lỗi liên quan đến Sách, Tác giả, Thể loại (Nhóm 2xxx) ===
     BOOK_NOT_FOUND(2001, "Sách không tìm thấy", HttpStatus.NOT_FOUND),
     BOOK_COPY_NOT_FOUND(2002, "Bản sao sách không tìm thấy", HttpStatus.NOT_FOUND),
     ISBN_ALREADY_EXIST(2003, "ISBN đã tồn tại", HttpStatus.CONFLICT),
@@ -48,10 +49,6 @@ public enum ErrorCode {
     CANNOT_DELETE_COPY_PENDING(3009, "Không thể xóa bản sao sách có yêu cầu mượn đang chờ xử lý", HttpStatus.CONFLICT),
 
 
-    // === Lỗi nghiệp vụ Đặt trước sách (Nhóm 4xxx) ===
-    DUPLICATE_RESERVATION(4001, "Người dùng đã có một yêu cầu đặt trước đang hoạt động cho sách này", HttpStatus.CONFLICT),
-    CANNOT_RESERVE_AVAILABLE_BOOK(4002, "Sách này có bản sao có sẵn và không thể đặt trước", HttpStatus.BAD_REQUEST),
-    RESERVATION_NOT_FOUND(4003, "Yêu cầu đặt trước không tìm thấy", HttpStatus.NOT_FOUND),
 
     // === Lỗi liên quan đến Token (Nhóm 5xxx) ===
     REFRESH_TOKEN_EXPIRED(5002, "Token làm mới đã hết hạn. Vui lòng yêu cầu đăng nhập lại", HttpStatus.UNAUTHORIZED),

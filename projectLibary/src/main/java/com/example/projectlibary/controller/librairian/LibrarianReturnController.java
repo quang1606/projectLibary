@@ -11,7 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("ap/v1/librarian/returns")
+@RequestMapping("api/v1/librarian/returns")
 @PreAuthorize("hasRole('LIBRARIAN')")
 @RequiredArgsConstructor
 public class LibrarianReturnController {

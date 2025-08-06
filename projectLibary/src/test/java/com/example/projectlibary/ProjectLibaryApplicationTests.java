@@ -1,9 +1,6 @@
 package com.example.projectlibary;
 
-import com.example.projectlibary.common.BookCopyStatus;
-import com.example.projectlibary.common.BookLoanStatus;
-import com.example.projectlibary.common.NewsStatus;
-import com.example.projectlibary.common.UserRole;
+import com.example.projectlibary.common.*;
 import com.example.projectlibary.model.*;
 import com.example.projectlibary.repository.*;
 import com.github.javafaker.Faker;
@@ -717,7 +714,7 @@ private BookElasticSearchRepository bookElasticSearchRepository;
                         .librarianConfirmedReturnAt(returnedAt) // Thủ thư xác nhận trả
                         .status(BookLoanStatus.RETURNED)
                         .fineAmount(fine)
-                        .returnCondition("Sách trả trong tình trạng tốt.");
+                        .returnCondition(ReturnCondition.NORMAL);
 
                 // Sau khi trả, cập nhật lại trạng thái của bản sao sách thành "AVAILABLE"
                 bookCopy.setStatus(BookCopyStatus.AVAILABLE);
@@ -732,7 +729,7 @@ private BookElasticSearchRepository bookElasticSearchRepository;
                 loanBuilder
                         .borrowedAt(borrowedAt)
                         .dueDate(dueDate)
-                        .status(BookLoanStatus.BORROWED)
+                        .status(BookLoanStatus.ON_LOAN)
                         .fineAmount(BigDecimal.ZERO); // Chưa có phạt
 
                 // Cập nhật trạng thái bản sao sách thành "BORROWED" (Đã được mượn)
@@ -769,7 +766,7 @@ private BookElasticSearchRepository bookElasticSearchRepository;
                         .status(BookLoanStatus.LOST)
                         // Tiền phạt bằng đúng chi phí thay thế sách
                         .fineAmount(bookCopy.getBook().getReplacementCost())
-                        .returnCondition("Sinh viên báo làm mất sách.");
+                        .returnCondition(ReturnCondition.NORMAL);
 
                 // Cập nhật trạng thái bản sao sách thành "LOST" (Đã mất)
                 bookCopy.setStatus(BookCopyStatus.LOST);

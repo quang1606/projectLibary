@@ -19,10 +19,11 @@ public class UserController {
     private final UserService userService;
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('STUDENT') and hasRole('LIBRAIRIAN')")
-    public ResponseEntity<ResponseData<UserResponse>> createUser(@Valid @RequestPart UpdateUserRequest updateUserRequest,
+    public ResponseEntity<ResponseData<UserResponse>> updateUser(@Valid @RequestPart UpdateUserRequest updateUserRequest,
                                                                  @RequestPart MultipartFile multipartFile) {
         UserResponse userResponse = userService.updateUser(updateUserRequest,multipartFile);
         ResponseData<UserResponse> responseData = new ResponseData<>(200,"success",userResponse);
         return  ResponseEntity.ok(responseData);
     }
+
 }

@@ -2,6 +2,7 @@ package com.example.projectlibary.service.eventservice;
 
 import com.example.projectlibary.common.ReturnCondition;
 import com.example.projectlibary.event.FineIssuedEvent;
+import com.example.projectlibary.event.ForgotPasswordEvent;
 import com.example.projectlibary.event.UserRegistrationEvent;
 import com.example.projectlibary.model.User;
 import com.example.projectlibary.repository.UserRepository;
@@ -78,6 +79,21 @@ public class EmailNotificationService {
         );
 
         sendEmail(event.getUserEmail(), subject, messageText);
+    }
+    @KafkaListener(topics = "forgot-password-events", groupId = "email-notification-group")
+    public void handleForgotPasswordEvent(ForgotPasswordEvent event) {
+        User user = findByUserId(event.getUserId());
+        if(user==null) {
+            return;
+        }
+        String token = UUID.randomUUID().toString();
+        authService.createVerificationTokenForUser(user, token);
+        String recipientAddress = user.getEmail();
+        String subject= "Đổi mật khẩu";
+        String confirmationUrl = event.getAppUrl() + "/api/reset-password?token=" + token;
+        String messageText = "Thank you for registering. Please click the link below to activate your account:";
+        sendEmail(recipientAddress, subject, messageText + "\r\n" + confirmationUrl);
+
     }
     private String formatCurrency(BigDecimal amount) {
         if (amount == null) return "N/A";

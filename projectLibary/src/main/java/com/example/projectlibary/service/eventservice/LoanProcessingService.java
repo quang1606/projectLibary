@@ -49,7 +49,7 @@ public class LoanProcessingService {
                         .bookCopy(bookCopy)
                         .borrowedAt(event.getConfirmationDate())
                         .dueDate(LocalDate.now().plusWeeks(2))
-                        .status(BookLoanStatus.BORROWED)
+                        .status(BookLoanStatus.ON_LOAN)
                         .fineAmount(BigDecimal.ZERO)
                         .updatedBy(user)
                         .createdBy(user)

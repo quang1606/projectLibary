@@ -1,21 +1,21 @@
 package com.example.projectlibary.event;
 
 import com.example.projectlibary.common.ReturnCondition;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 @Getter
 @Setter
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class FineIssuedEvent {
     private Long userId;
     private String userEmail;
-    private String userFullName; // Tên để email thêm phần cá nhân hóa
+    private String userFullName;
 
-    // --- Thông tin về lượt mượn gây ra phạt ---
+
     private Long loanId;
     private String bookTitle;
     private String bookCopyNumber;

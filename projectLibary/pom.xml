@@ -202,8 +202,14 @@
             <version>3.4.1</version>
         </dependency>
 
-    </dependencies>
+<!--        websocket để phản hồi thời gian thực-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+<!--         tạo chuỗi VietQR-->
 
+    </dependencies>
     <build>
         <plugins>
             <!-- Cấu hình plugin của bạn giữ nguyên -->

@@ -41,7 +41,7 @@ public class KafkaProducerService {
 
     public void sendBookCopyId(BookStatusChangedEvent event) {
         try {
-            kafkaTemplate.send("cart-item-added-events",String.valueOf(event.getUserId()), event);
+            kafkaTemplate.send("book-status-changed-events",String.valueOf(event.getUserId()), event);
         } catch (Exception e) {
             log.error("Error sending event to topic", e);
         }
@@ -49,6 +49,20 @@ public class KafkaProducerService {
     public void sendFineIssuedEvent(FineIssuedEvent event) {
         try {
             kafkaTemplate.send("fine-issued-events", String.valueOf(event.getUserId()), event);
+        }catch (Exception e) {
+            log.error("Error sending event to topic", e);
+        }
+    }
+    public void sendPaymentEvent(PaymentCompletedEvent event) {
+        try {
+            kafkaTemplate.send("payments-completed-events", String.valueOf(event.getUserId()), event);
+        }catch (Exception e) {
+            log.error("Error sending event to topic", e);
+        }
+    }
+    public void sendForgotPasswordEvent(ForgotPasswordEvent event) {
+        try {
+            kafkaTemplate.send("forgot-password-events", String.valueOf(event.getUserId()), event);
         }catch (Exception e) {
             log.error("Error sending event to topic", e);
         }

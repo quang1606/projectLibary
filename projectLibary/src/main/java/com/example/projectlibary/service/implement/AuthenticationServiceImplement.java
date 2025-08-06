@@ -4,8 +4,11 @@ import com.example.projectlibary.common.UserRole;
 import com.example.projectlibary.dto.reponse.LoginResponse;
 import com.example.projectlibary.dto.reponse.RefreshTokenResponse;
 import com.example.projectlibary.dto.reponse.UserResponse;
+import com.example.projectlibary.dto.request.ForgotPasswordRequest;
 import com.example.projectlibary.dto.request.LoginRequest;
 import com.example.projectlibary.dto.request.RegistrationRequest;
+import com.example.projectlibary.dto.request.RestPasswordRequest;
+import com.example.projectlibary.event.ForgotPasswordEvent;
 import com.example.projectlibary.event.UserRegistrationEvent;
 import com.example.projectlibary.exception.AppException;
 import com.example.projectlibary.exception.ErrorCode;
@@ -168,6 +171,36 @@ public class AuthenticationServiceImplement implements AuthenticationService {
         userRepository.save(user);
         verificationTokensRepository.delete(verificationTokens); // Xóa token sau khi đã sử dụng
         return "valid";
+    }
+
+    @Override
+    public void forgotPassword(ForgotPasswordRequest forgotPasswordRequest, HttpServletRequest request) {
+        Optional<User> userOpt = userRepository.findByEmail(forgotPasswordRequest.getEmail());
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            String appUrl = getAppUrl(request);
+            ForgotPasswordEvent event = ForgotPasswordEvent.builder()
+                    .Email(forgotPasswordRequest.getEmail())
+                    .UserId(user.getId())
+                    .appUrl(appUrl)
+                    .build();
+            kafkaProducerService.sendForgotPasswordEvent(event);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void restPassword(RestPasswordRequest restPasswordRequest,String token) {
+        VerificationTokens verificationTokens = verificationTokensRepository.findByToken(token).orElseThrow(()->new AppException(ErrorCode.INVALID_VERIFICATION_TOKEN));
+        if(verificationTokens.isExpired()) {
+            verificationTokensRepository.delete(verificationTokens);
+            throw new AppException(ErrorCode.EXPIRED_VERIFICATION_TOKEN);
+        }
+
+        User user = verificationTokens.getUser();
+        user.setPassword(passwordEncoder.encode(restPasswordRequest.getPassword()));
+        userRepository.save(user);
+        verificationTokensRepository.delete(verificationTokens);
     }
 
     private String getAppUrl(HttpServletRequest request) {

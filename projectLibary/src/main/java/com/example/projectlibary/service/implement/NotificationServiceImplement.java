@@ -141,6 +141,26 @@ public class NotificationServiceImplement implements NotificationService {
 
     }
 
+    @Override
+    public void createAlertNotification(BookLoan loan) {
+        String bookTitle = loan.getBookCopy().getBook().getTitle();
+        String message = String.format("Cuốn sác '%s' còn một ngày nữa là hết hạn bạn hãy trả đúng thời gian quy định. Cảm ơn bạn!", bookTitle);
+        UserNotification userNotification = UserNotification.builder()
+                .user(loan.getUser())
+                .message(message)
+                .type(NotificationType.DUE_DATE_REMINDER)
+                .isRead(false)
+                .sentAt(LocalDateTime.now())
+                .build();
+        try {
+            userNotificationRepository.save(userNotification);
+
+        }catch (Exception e){
+            log.error("Failed to create welcome notification for user ID: {}", loan.getUser(), e);
+
+        }
+    }
+
 
     @Override
     public PageResponse<UserNotificationResponse> getAllNotifications(int page, int size) {

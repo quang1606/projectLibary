@@ -28,6 +28,9 @@ public interface NotificationService {
      * Thông báo sách bị hỏng nặng hoặc mất và phải đền bù.
      */
     void createReturnLostOrHeavilyDamagedNotification(BookLoan loan, BigDecimal replacementCost);
+
+    void createAlertNotification(BookLoan loan);
+
     PageResponse<UserNotificationResponse> getAllNotifications(int page, int size);
 
     UserNotificationResponse getNotificationById(long id);

@@ -3,15 +3,12 @@ package com.example.projectlibary.service.implement;
 import com.example.projectlibary.common.BookCopyStatus;
 import com.example.projectlibary.common.BookLoanStatus;
 import com.example.projectlibary.common.ReturnCondition;
-import com.example.projectlibary.dto.reponse.BookCopyResponse;
 import com.example.projectlibary.dto.reponse.BookLoanResponse;
-import com.example.projectlibary.dto.reponse.BookSummaryResponse;
 import com.example.projectlibary.dto.reponse.PageResponse;
 import com.example.projectlibary.dto.request.FinalizeReturnRequest;
 import com.example.projectlibary.event.BookStatusChangedEvent;
 import com.example.projectlibary.exception.AppException;
 import com.example.projectlibary.exception.ErrorCode;
-import com.example.projectlibary.mapper.BookCopyMapper;
 import com.example.projectlibary.mapper.BookLoanMapper;
 import com.example.projectlibary.model.Book;
 import com.example.projectlibary.model.BookCopy;
@@ -25,7 +22,6 @@ import com.example.projectlibary.service.NotificationService;
 import com.example.projectlibary.service.ReturnService;
 import com.example.projectlibary.service.eventservice.KafkaProducerService;
 import jakarta.transaction.Transactional;
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,10 +32,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -52,27 +48,45 @@ public class ReturnServIceImplement implements ReturnService{
     private final KafkaProducerService kafkaProducerService;
     private final FineService fineService;
     private static final int PENDING_RETURN_EXPIRATION_HOURS = 12;
+    private static final int PENDING_RETURN_EXPIRATION_DAYS = 1;
 
     @Scheduled(fixedRate = 360000)
     @Transactional
     public void cancelExpiredPendingReturns(){
         LocalDateTime expirationTime = LocalDateTime.now().minusHours(PENDING_RETURN_EXPIRATION_HOURS);
+
         List<BookLoan> bookLoans = bookLoanRepository.findByStatusAndStudentInitiatedReturnAtBefore(BookLoanStatus.PENDING_RETURN, expirationTime);
         if(bookLoans.isEmpty()){
             return;
         }
+
         for(BookLoan bookLoan : bookLoans){
-            bookLoan.setStatus(BookLoanStatus.BORROWED);
+            bookLoan.setStatus(BookLoanStatus.ON_LOAN);
             bookLoan.setStudentInitiatedReturnAt(null);
         }
     }
+
+    @Scheduled(cron = "0 0 8 * * ?")
+    @Transactional
+    public void checkBooksExpiringInOneDay() {
+        LocalDate dateTime = LocalDate.now().minusDays(PENDING_RETURN_EXPIRATION_DAYS);
+        List<BookLoan> bookLoans = bookLoanRepository.findByStatusAndDueDateAndReminderSentFalse(BookLoanStatus.ON_LOAN, dateTime);
+        if(bookLoans.isEmpty()){
+            return;
+        }
+        for(BookLoan bookLoan : bookLoans){
+            notificationService.createAlertNotification(bookLoan);
+            bookLoan.setReminderSent(true);
+        }
+    }
+
 
     @Override
     public PageResponse<BookLoanResponse> getMyLoans(int page, int size) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
         Pageable pageable = PageRequest.of(page,size);
-        List<BookLoanStatus> loanStatuses = List.of(BookLoanStatus.BORROWED,BookLoanStatus.OVERDUE);
+        List<BookLoanStatus> loanStatuses = List.of(BookLoanStatus.ON_LOAN,BookLoanStatus.OVERDUE);
        Page<BookLoan> bookLoan =  bookLoanRepository.findByUser_IdAndStatusIn( userDetails.getId(),loanStatuses,pageable);
        if(bookLoan.isEmpty()){
            throw new AppException(ErrorCode.BOOK_LOAN_NOT_FOUND);
@@ -93,7 +107,7 @@ public class ReturnServIceImplement implements ReturnService{
         if(!bookLoan.getUser().getId().equals(userDetails.getId())){
             throw new AppException(ErrorCode.ACCESS_DENIED);
         }
-        if(!bookLoan.getStatus().equals(BookLoanStatus.BORROWED) && !bookLoan.getStatus().equals(BookLoanStatus.OVERDUE)){
+        if(!bookLoan.getStatus().equals(BookLoanStatus.ON_LOAN) && !bookLoan.getStatus().equals(BookLoanStatus.OVERDUE)){
             throw new AppException(ErrorCode.BOOK_LOAN_NOT_FOUND);
         }
         bookLoan.setStatus(BookLoanStatus.PENDING_RETURN);
@@ -161,6 +175,27 @@ public class ReturnServIceImplement implements ReturnService{
 
         bookLoanRepository.save(bookLoan);
         bookCopyRepository.save(bookCopy);
+        return bookLoanMapper.toResponse(bookLoan);
+    }
+
+    @Override
+    @Transactional
+    public BookLoanResponse lostBook(Long loanId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+        BookLoan bookLoan = bookLoanRepository.findById(loanId)
+                .orElseThrow(()-> new AppException(ErrorCode.BOOK_LOAN_NOT_FOUND));
+        BookCopy bookCopy = bookLoan.getBookCopy();
+        if(bookLoan.getStatus() != BookLoanStatus.PENDING_RETURN || bookLoan.getReturnCondition() != ReturnCondition.NORMAL){
+            throw new AppException(ErrorCode.INVALID_RETURN_STATE);
+        }
+        Book book = bookRepository.findById(bookCopy.getBook().getId()).orElseThrow(()-> new AppException(ErrorCode.BOOK_NOT_FOUND));
+        BigDecimal bigDecimal = book.getReplacementCost();
+        bookLoan.setStatus(BookLoanStatus.LOST);
+        bookCopy.setStatus(BookCopyStatus.LOST);
+        notificationService.createReturnLostOrHeavilyDamagedNotification(bookLoan,bigDecimal);
+        handleBookStatusChange(userDetails.getId(),book.getId());
+        bookLoanRepository.save(bookLoan);
         return bookLoanMapper.toResponse(bookLoan);
     }
 

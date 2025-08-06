@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -22,4 +23,9 @@ public interface BookLoanRepository extends JpaRepository<BookLoan, Long> {
     List<BookLoan> findByStatusAndStudentInitiatedReturnAtBefore(BookLoanStatus status, LocalDateTime studentInitiatedReturnAtBefore);
 
     Optional<BookLoan> findByBookCopyAndStatus(BookCopy bookCopy, BookLoanStatus status);
+
+
+    List<BookLoan> findByStatusAndDueDateAndReminderSentFalse(BookLoanStatus status, LocalDate dueDate);
+
+
 }

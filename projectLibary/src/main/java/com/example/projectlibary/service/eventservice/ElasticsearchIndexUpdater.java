@@ -22,7 +22,7 @@ public class ElasticsearchIndexUpdater {
 
         // 1. Tìm document hiện có trong Elasticsearch
         bookElasticSearchRepository.findById(event.getBookId()).ifPresentOrElse(bookEs -> {
-            // 2. TÍNH TOÁN LẠI SỐ LƯỢNG CÓ SẴN TỪ CSDL CHÍNH
+
             long newAvailableCount = bookCopyRepository.countByBook_IdAndStatus(event.getBookId(), BookCopyStatus.AVAILABLE);
 
             // 3. Cập nhật lại document

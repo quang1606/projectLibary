@@ -9,8 +9,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("ap/v1/returns")
-@PreAuthorize("hasRole('STUDEN')")
+@RequestMapping("api/v1/returns")
+@PreAuthorize("hasRole('STUDENT')")
 @RequiredArgsConstructor
 public class ReturnsController {
     private final ReturnService returnService;
@@ -25,6 +25,12 @@ public class ReturnsController {
     @PostMapping("/{loanId}/request-return")
     public ResponseEntity<ResponseData<BookLoanResponse>> returnsBook(@PathVariable Long loanId){
         BookLoanResponse bookLoanResponse = returnService.returnsBook(loanId);
+        ResponseData<BookLoanResponse> responseData = new ResponseData<>(200,"Success",bookLoanResponse);
+        return ResponseEntity.ok(responseData);
+    }
+    @PostMapping("/lost/{loanId}")
+    public ResponseEntity<ResponseData<BookLoanResponse>> lostBook(@PathVariable Long loanId){
+        BookLoanResponse bookLoanResponse = returnService.lostBook(loanId);
         ResponseData<BookLoanResponse> responseData = new ResponseData<>(200,"Success",bookLoanResponse);
         return ResponseEntity.ok(responseData);
     }
