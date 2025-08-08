@@ -47,7 +47,7 @@ public class JwtTokenUtil {
     /**
      * Hàm chung để tạo ra một chuỗi JWT.
      * @param claims Các thông tin thêm.
-     * @param subject Định danh của người dùng (thường là email hoặc username).
+     * @param subject Định danh của người dùng (thường là email ).
      * @param expirationTime Thời gian sống của token (tính bằng mili giây).
      * @return Chuỗi JWT.
      */
@@ -73,7 +73,6 @@ public class JwtTokenUtil {
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
-    // Các hàm helper để trích xuất thông tin từ token
 
     public String getUsernameFromToken(String token) {
         return getClaimFromToken(token, Claims::getSubject);

@@ -1,5 +1,8 @@
 package com.example.projectlibary.model;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -7,13 +10,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-
+@RequiredArgsConstructor
 public class CustomUserDetails implements UserDetails {
     private final User user;
 
-    public CustomUserDetails(User user) {
-        this.user = user;
-    }
     public User getUser() {
         return user;
     }
@@ -24,9 +24,8 @@ public class CustomUserDetails implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         if (user.getRole() == null) {
-            return Collections.emptyList(); // Trả về danh sách rỗng an toàn
+            return Collections.emptyList();
         }
-
         // "ROLE_" là một tiền tố quy ước, rất quan trọng.
         // @PreAuthorize("hasRole('ADMIN')") sẽ tìm quyền "ROLE_ADMIN".
         return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));

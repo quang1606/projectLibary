@@ -31,7 +31,7 @@ public class BookController {
     @GetMapping("/book/all")
     public ResponseEntity<ResponseData<PageResponse<BookSummaryResponse>>> getAllBooks( @RequestParam(defaultValue = "0") int page,
                                                                                         @RequestParam(defaultValue = "10") int size){
-        PageResponse<BookSummaryResponse> allbook=bookService.getAllBooks(page,size);
+        PageResponse<BookSummaryResponse> allbook =bookService.getAllBooks(page,size);
         ResponseData<PageResponse<BookSummaryResponse>> responseData =new ResponseData<>(200, "Success", allbook);
         return ResponseEntity.ok(responseData);
     }

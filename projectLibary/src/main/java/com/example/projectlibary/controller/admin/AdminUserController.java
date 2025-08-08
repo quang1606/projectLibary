@@ -10,16 +10,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-// controller/AdminUserController.java (hoặc trong UserController)
+
 @RestController
-@RequestMapping("/api/admin/users") // Prefix /admin để dễ bảo mật
+@RequestMapping("/api/admin/users")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')") // Bảo vệ toàn bộ controller
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminUserController {
 
     private final UserService userService;
 
-    // Cập nhật vai trò
+
     @PatchMapping("/{userId}/role")
     public ResponseEntity<ResponseData<UserResponse>> updateUserRole(@PathVariable Long userId,
                                                                      @Valid @RequestBody UpdateUserRoleRequest request) {

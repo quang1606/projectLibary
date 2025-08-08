@@ -62,7 +62,7 @@ public class AuthenticationServiceImplement implements AuthenticationService {
     private Long refreshTokenDurationMs;
     @Override
     public LoginResponse login(HttpServletResponse response, LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
+            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         String accessToken = jwtTokenUtil.generateAccessToken(userDetails);
