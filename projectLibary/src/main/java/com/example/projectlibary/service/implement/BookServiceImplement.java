@@ -53,7 +53,7 @@ public class BookServiceImplement implements BookService {
     private final CategoryRepository categoryRepository;
     private final KafkaProducerService kafkaProducerService;
 
-    // Làm giàu danh sách BookSummaryResponse với thông tin về số lượt mượn (loanCount).
+    
     public void enrichSummariesWithLoanCounts(List<BookSummaryResponse> bookSummaryResponses) {
         if (bookSummaryResponses == null || bookSummaryResponses.isEmpty()) {
             return;
@@ -99,14 +99,13 @@ public class BookServiceImplement implements BookService {
         Map<Long, Book> bookMap = books.stream().collect(Collectors.toMap(Book::getId, book -> book));
         Map<Long, Long> loanCountMap = loanCountPage.getContent().stream().collect(Collectors.toMap(BookLoanCountResponse::getId, BookLoanCountResponse::getLoanCount));
 
-        // Bước cuối: Kết hợp dữ liệu và tạo ra danh sách response cuối cùng.
         List<BookSummaryResponse> finalResponseList = bookIds.stream()
                 .map(id -> {
                     Book book = bookMap.get(id);
                     long loanCount = loanCountMap.getOrDefault(id, 0L);
 
                     BookSummaryResponse response = bookMapper.toSummaryResponse(book);
-                    // Gán thêm thông tin số lượt mượn
+                   
                     response.setLoanCount(loanCount);
                     return response;
                 })
@@ -129,7 +128,7 @@ public class BookServiceImplement implements BookService {
 
     @Override
     public BookDetailResponse getBookById(long id) {
-        // (1) Log INFO: Ghi nhận sự bắt đầu của một nghiệp vụ
+       
         log.info("Bắt đầu tìm kiếm sách với ID: {}", id);
 
         Book book = bookRepository.findById(id)
@@ -158,7 +157,7 @@ public class BookServiceImplement implements BookService {
         List<Long> bookIds = topBooksResult.stream()
                 .map(TopRatedBookResponse::getBookId)
                 .collect(Collectors.toList());
-        // 3. Lấy chi tiết sách theo các ID đã có
+        //  Lấy chi tiết sách theo các ID đã có
         List<Book> books = bookRepository.findAllById(bookIds);
         Map<Long, Book> bookMap = books.stream().collect(Collectors.toMap(Book::getId, b -> b));
         // Giữ đúng thứ tự ban đầu từ câu query xếp hạng
@@ -166,13 +165,13 @@ public class BookServiceImplement implements BookService {
                 .map(bookMap::get)
                 .filter(Objects::nonNull)
                 .toList();
-        // 4. Map sang DTO và làm giàu dữ liệu (nếu cần)
+     
         List<BookSummaryResponse> bookSummaryResponses = sortedBooks.stream()
                 .map(bookMapper::toSummaryResponse)
                 .toList();
         enrichSummariesWithLoanCounts(bookSummaryResponses);
 
-        // 5. PHÂN TRANG THỦ CÔNG TRONG JAVA
+        // PHÂN TRANG THỦ CÔNG TRONG JAVA
         int start = (int) pageable.getOffset();
         int end = Math.min((start + pageable.getPageSize()), bookSummaryResponses.size());
         // Lấy ra danh sách con cho trang hiện tại
@@ -187,14 +186,13 @@ public class BookServiceImplement implements BookService {
         Pageable pageable = PageRequest.of(page, size);
         if (keyWord == null || keyWord.isBlank()) {
 
-            // return bookElasticSearchRepository.findAll(pageable);
-            // Hoặc dùng query match_all nếu muốn
+           
             Query query = Query.of(q->q.matchAll(m->m));
 
             return searchWithQuery(query, pageable);
         }
 
-        // Xây dựng một câu truy vấn Multi-match phức tạp và mạnh mẽ
+     
         Query query = Query.of(q -> q
                 .multiMatch(mm -> mm
                         .query(keyWord)
@@ -317,8 +315,8 @@ public class BookServiceImplement implements BookService {
                 .publisher(createBookRequest.getPublisher())
                 .publicationYear(createBookRequest.getPublicationYear())
                 .replacementCost(createBookRequest.getReplacementCost())
-                .thumbnail(thumbnailUrl) // Gán URL đã upload
-                .ebookUrl(ebookUrl)   // Gán URL đã upload
+                .thumbnail(thumbnailUrl) 
+                .ebookUrl(ebookUrl)  
                 .category(category)
                 .authors(authors)
                 .build();
@@ -348,7 +346,7 @@ public class BookServiceImplement implements BookService {
         Book bookToUpdate = bookRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
         boolean isUpdated = false;
-        // 2. Kiểm tra ISBN (Logic đã sửa)
+      
         String newIsbn = request.getIsbn();
         // Chỉ kiểm tra nếu ISBN được thay đổi
         if (newIsbn != null && !newIsbn.equals(bookToUpdate.getIsbn())) {
@@ -421,7 +419,7 @@ public class BookServiceImplement implements BookService {
         return bookMapper.toBookDetailResponse(updatedBook);
     }
 
-    // service/implement/BookServiceImplement.java
+
 
     @Override
     @Transactional 
@@ -440,16 +438,12 @@ public class BookServiceImplement implements BookService {
         bookToDelete.setDeletedBy(currentUser);
 
         // 4. Lưu lại để cập nhật 'deletedBy' trước khi 'xóa'
-        // Mặc dù @SQLDelete không dùng đến trường này, nhưng việc lưu lại là một thực hành tốt
-        // để đảm bảo trạng thái của entity là nhất quán.
+      
         bookRepository.save(bookToDelete);
         if (!bookRepository.existsById(id)) {
             throw new AppException(ErrorCode.BOOK_NOT_FOUND);
         }
         // 2. Thực hiện xóa
-        // Do bạn đã cấu hình cascade và khóa ngoại, Hibernate/JPA sẽ xử lý các bảng liên quan:
-        // - Xóa các bản ghi trong bảng nối `book_authors`.
-        // - Các hành động khác tùy thuộc vào `CascadeType` và `onDelete` của các quan hệ @OneToMany.
         BookSyncEvent bookSyncEvent = BookSyncEvent.builder()
                 .evenType("DELETE")
                 .id(id)
@@ -475,8 +469,7 @@ public class BookServiceImplement implements BookService {
         bookToRestore.setDeletedAt(null);
         bookToRestore.setDeletedBy(null);
 
-        // Lưu ý: JPA Auditing (@LastModifiedBy, @LastModifiedDate) sẽ tự động cập nhật
-        // updated_by và updated_at khi chúng ta gọi save().
+
 
         // 4. Lưu lại sách đã được khôi phục vào DB
         Book restoredBook = bookRepository.save(bookToRestore);
