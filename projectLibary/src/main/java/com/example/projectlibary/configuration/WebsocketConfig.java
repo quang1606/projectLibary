@@ -12,7 +12,7 @@ public class WebsocketConfig implements WebSocketMessageBrokerConfigurer  {
     public void configureMessageBroker(MessageBrokerRegistry config) {
         config.enableSimpleBroker("/topic", "/user");
         config.setApplicationDestinationPrefixes("/app");
-        config.setUserDestinationPrefix("/user"); // Quan trọng cho convertAndSendToUser
+        config.setUserDestinationPrefix("/user"); 
     }
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
