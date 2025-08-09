@@ -53,7 +53,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configure(http)) // Cấu hình CORS nếu cần
+                .cors(cors -> cors.configure(http)) // Cấu hình CORS
                 .csrf(AbstractHttpConfigurer::disable) // Vô hiệu hóa CSRF cho API stateless
                 .exceptionHandling(ex -> ex.authenticationEntryPoint((AuthenticationEntryPoint) customAuthenticationEntryPoint)) // Xử lý lỗi 401
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Không tạo session
