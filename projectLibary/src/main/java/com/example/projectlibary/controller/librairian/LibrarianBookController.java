@@ -53,7 +53,7 @@ public class LibrarianBookController {
         bookService.deleteBook(id);
         return ResponseEntity.ok().build();
     }
-    @PostMapping("/{id}/restore") // Dùng POST cho hành động thay đổi trạng thái
+    @PostMapping("/{id}/restore") 
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     public ResponseEntity<String> restoreBook(@PathVariable Long id) {
         bookService.restoreBook(id);
