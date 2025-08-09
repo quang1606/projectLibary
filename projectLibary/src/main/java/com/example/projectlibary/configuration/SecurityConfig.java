@@ -58,9 +58,7 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint((AuthenticationEntryPoint) customAuthenticationEntryPoint)) // Xử lý lỗi 401
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Không tạo session
                 .authorizeHttpRequests(auth -> auth
-                        // Cho phép các endpoint này không cần xác thực
                         .requestMatchers("/api/auth/**","/api/v1/payments/webhook/**").permitAll()
-                        // Tất cả các request khác đều cần xác thực
                         .anyRequest().authenticated()
                 );
 
