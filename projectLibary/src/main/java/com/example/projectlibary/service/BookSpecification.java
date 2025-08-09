@@ -36,7 +36,7 @@ public class BookSpecification {
                             criteriaBuilder.lower(authorJoin.get("fullName")),
                             "%" + valueStr.toLowerCase() + "%"
                     ));
-                    // Khi đã xử lý xong, chuyển sang vòng lặp tiếp theo
+
                     continue;
                 }
 
@@ -46,11 +46,11 @@ public class BookSpecification {
                             criteriaBuilder.lower(categoryJoin.get("name")),
                             "%" + valueStr.toLowerCase() + "%"
                     ));
-                    // Khi đã xử lý xong, chuyển sang vòng lặp tiếp theo
+        
                     continue;
                 }
                 try {
-                    // Gọi các hàm helper cho các trường thông thường
+                   
                     Object value = convertValueForBookEntity(key, valueStr);
 
                     switch (operation) {
