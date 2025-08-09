@@ -18,7 +18,7 @@ import java.util.Map;
 public class GlobalHandlingException {
     /**
      * Xử lý chính cho tất cả các lỗi nghiệp vụ được định nghĩa (AppException).
-     * Đây là handler quan trọng nhất.
+     *
      */
     @ExceptionHandler(value = AppException.class)
     public ResponseEntity<ErrorResponse> handleAppException(AppException ex, WebRequest request) {
@@ -40,7 +40,7 @@ public class GlobalHandlingException {
 
     /**
      * Xử lý lỗi validation từ @Valid.
-     * Trả về một cấu trúc lỗi chi tiết cho từng trường.
+     *
      */
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex, WebRequest request) {
@@ -85,7 +85,7 @@ public class GlobalHandlingException {
      * Tránh để lộ chi tiết lỗi hệ thống ra ngoài.
      */
     public ResponseEntity<ErrorResponse> handleUncategorizedException(Exception ex, WebRequest request) {
-        // Ghi lại log của lỗi thực tế để đội ngũ phát triển có thể debug
+
         log.error("Uncategorized exception occurred: ", ex);
         ErrorCode errorCode = ErrorCode.UNCATEGORIZED_EXCEPTION;
 
@@ -94,7 +94,7 @@ public class GlobalHandlingException {
                 .status(errorCode.getHttpStatus().value())
                 .code(errorCode.getCode())
                 .error(errorCode.getHttpStatus().getReasonPhrase())
-                .message("An unexpected error occurred. Please contact support.") // Trả về message an toàn
+                .message("An unexpected error occurred. Please contact support.")
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
 
