@@ -53,7 +53,7 @@ public class BookServiceImplement implements BookService {
     private final CategoryRepository categoryRepository;
     private final KafkaProducerService kafkaProducerService;
 
-    // Làm giàu danh sách BookSummaryResponse với thông tin về số lượt mượn (loanCount).
+    
     public void enrichSummariesWithLoanCounts(List<BookSummaryResponse> bookSummaryResponses) {
         if (bookSummaryResponses == null || bookSummaryResponses.isEmpty()) {
             return;
@@ -99,14 +99,21 @@ public class BookServiceImplement implements BookService {
         Map<Long, Book> bookMap = books.stream().collect(Collectors.toMap(Book::getId, book -> book));
         Map<Long, Long> loanCountMap = loanCountPage.getContent().stream().collect(Collectors.toMap(BookLoanCountResponse::getId, BookLoanCountResponse::getLoanCount));
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 897f0d614884de2b8110d2450c41c49271065acb
         List<BookSummaryResponse> finalResponseList = bookIds.stream()
                 .map(id -> {
                     Book book = bookMap.get(id);
                     long loanCount = loanCountMap.getOrDefault(id, 0L);
 
                     BookSummaryResponse response = bookMapper.toSummaryResponse(book);
+<<<<<<< HEAD
 
+=======
+                   
+>>>>>>> 897f0d614884de2b8110d2450c41c49271065acb
                     response.setLoanCount(loanCount);
                     return response;
                 })
@@ -129,7 +136,7 @@ public class BookServiceImplement implements BookService {
 
     @Override
     public BookDetailResponse getBookById(long id) {
-        // (1) Log INFO: Ghi nhận sự bắt đầu của một nghiệp vụ
+       
         log.info("Bắt đầu tìm kiếm sách với ID: {}", id);
 
         Book book = bookRepository.findById(id)
@@ -166,12 +173,20 @@ public class BookServiceImplement implements BookService {
                 .map(bookMap::get)
                 .filter(Objects::nonNull)
                 .toList();
+<<<<<<< HEAD
+=======
+     
+>>>>>>> 897f0d614884de2b8110d2450c41c49271065acb
         List<BookSummaryResponse> bookSummaryResponses = sortedBooks.stream()
                 .map(bookMapper::toSummaryResponse)
                 .toList();
         enrichSummariesWithLoanCounts(bookSummaryResponses);
 
+<<<<<<< HEAD
         //  PHÂN TRANG THỦ CÔNG TRONG JAVA
+=======
+        // PHÂN TRANG THỦ CÔNG TRONG JAVA
+>>>>>>> 897f0d614884de2b8110d2450c41c49271065acb
         int start = (int) pageable.getOffset();
         int end = Math.min((start + pageable.getPageSize()), bookSummaryResponses.size());
         // Lấy ra danh sách con cho trang hiện tại
@@ -186,13 +201,21 @@ public class BookServiceImplement implements BookService {
         Pageable pageable = PageRequest.of(page, size);
         if (keyWord == null || keyWord.isBlank()) {
 
+<<<<<<< HEAD
 
+=======
+           
+>>>>>>> 897f0d614884de2b8110d2450c41c49271065acb
             Query query = Query.of(q->q.matchAll(m->m));
 
             return searchWithQuery(query, pageable);
         }
 
+<<<<<<< HEAD
 
+=======
+     
+>>>>>>> 897f0d614884de2b8110d2450c41c49271065acb
         Query query = Query.of(q -> q
                 .multiMatch(mm -> mm
                         .query(keyWord)
@@ -315,8 +338,13 @@ public class BookServiceImplement implements BookService {
                 .publisher(createBookRequest.getPublisher())
                 .publicationYear(createBookRequest.getPublicationYear())
                 .replacementCost(createBookRequest.getReplacementCost())
+<<<<<<< HEAD
                 .thumbnail(thumbnailUrl)
                 .ebookUrl(ebookUrl)
+=======
+                .thumbnail(thumbnailUrl) 
+                .ebookUrl(ebookUrl)  
+>>>>>>> 897f0d614884de2b8110d2450c41c49271065acb
                 .category(category)
                 .authors(authors)
                 .build();
@@ -345,8 +373,13 @@ public class BookServiceImplement implements BookService {
     public BookDetailResponse updateBook(UpdateBookRequest request, MultipartFile pdfFile, MultipartFile thumbnail,Long id) {
         Book bookToUpdate = bookRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
+<<<<<<< HEAD
 
 
+=======
+        boolean isUpdated = false;
+      
+>>>>>>> 897f0d614884de2b8110d2450c41c49271065acb
         String newIsbn = request.getIsbn();
 
         if (newIsbn != null && !newIsbn.equals(bookToUpdate.getIsbn())) {
@@ -417,6 +450,10 @@ public class BookServiceImplement implements BookService {
         return bookMapper.toBookDetailResponse(updatedBook);
     }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 897f0d614884de2b8110d2450c41c49271065acb
 
     @Override
     @Transactional 
@@ -433,12 +470,20 @@ public class BookServiceImplement implements BookService {
 
         bookToDelete.setDeletedBy(currentUser);
 
+<<<<<<< HEAD
+=======
+        // 4. Lưu lại để cập nhật 'deletedBy' trước khi 'xóa'
+      
+>>>>>>> 897f0d614884de2b8110d2450c41c49271065acb
         bookRepository.save(bookToDelete);
         if (!bookRepository.existsById(id)) {
             throw new AppException(ErrorCode.BOOK_NOT_FOUND);
         }
         // 2. Thực hiện xóa
+<<<<<<< HEAD
 
+=======
+>>>>>>> 897f0d614884de2b8110d2450c41c49271065acb
         BookSyncEvent bookSyncEvent = BookSyncEvent.builder()
                 .evenType("DELETE")
                 .id(id)
@@ -464,6 +509,11 @@ public class BookServiceImplement implements BookService {
         bookToRestore.setDeletedAt(null);
         bookToRestore.setDeletedBy(null);
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 897f0d614884de2b8110d2450c41c49271065acb
         // 4. Lưu lại sách đã được khôi phục vào DB
         Book restoredBook = bookRepository.save(bookToRestore);
         log.info("Successfully restored book with ID: {}", restoredBook.getId());
