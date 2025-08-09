@@ -66,13 +66,13 @@ private final BookRepository bookRepository;
         }
         List<BookCopy> copies = bookCopyRepository.saveAll(bookCopies);
         if (!copies.isEmpty()) {
-            // Chỉ cần gửi một event duy nhất cho đầu sách gốc
+
             BookStatusChangedEvent event = BookStatusChangedEvent.builder()
                     .bookId(book.getId())
                     .userId(user.getId())
                     .addedAt(LocalDateTime.now())
                     .build();
-            kafkaProducerService.sendBookCopyId(event); // Giả sử có hàm này
+            kafkaProducerService.sendBookCopyId(event);
         }
 
         return bookCopyMapper.toBookCopyResponseList(copies);
@@ -101,7 +101,7 @@ private final BookRepository bookRepository;
         return bookCopyMapper.toBookCopyResponse(bookCopy);
     }
 
-    // service/implement/BookCopyServiceImplement.java
+
 
     @Override
     @Transactional
@@ -109,11 +109,11 @@ private final BookRepository bookRepository;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         User user = userRepository.findByEmail(username).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        // 1. Tìm bản sao sách
+
         BookCopy bookCopyToDelete = bookCopyRepository.findById(copyId)
                 .orElseThrow(() -> new AppException(ErrorCode.BOOK_COPY_NOT_FOUND));
 
-        // 2. KIỂM TRA QUY TẮC NGHIỆP VỤ (Vẫn rất quan trọng)
+
         if (bookCopyToDelete.getStatus() == BookCopyStatus.BORROWED) {
             throw new AppException(ErrorCode.CANNOT_DELETE_COPY_BORROWED);
         }
@@ -122,10 +122,10 @@ private final BookRepository bookRepository;
             throw new AppException(ErrorCode.CANNOT_DELETE_COPY_RESERVED);
         }
 
-        // 3. Nếu tất cả kiểm tra đều qua, thực hiện "xóa mềm"
+        // Nếu tất cả kiểm tra đều qua, thực hiện "xóa mềm"
         // Bằng cách cập nhật trạng thái của nó
         bookCopyToDelete.setStatus(BookCopyStatus.DISCARDED);
-        bookCopyToDelete.setLocation("N/A"); // (Tùy chọn) Xóa vị trí
+        bookCopyToDelete.setLocation("N/A");
 
         bookCopyRepository.save(bookCopyToDelete);
         BookStatusChangedEvent event = BookStatusChangedEvent.builder()
@@ -133,7 +133,7 @@ private final BookRepository bookRepository;
                 .userId(user.getId())
                 .addedAt(LocalDateTime.now())
                 .build();
-        kafkaProducerService.sendBookCopyId(event); // Giả sử có hàm này
+        kafkaProducerService.sendBookCopyId(event);
 
         log.info("Successfully soft-deleted (discarded) book copy with ID: {}", copyId);
     }
@@ -141,23 +141,18 @@ private final BookRepository bookRepository;
     @Override
     public String getQRCodeImage(Long copyId) {
         BookCopy bookCopy = bookCopyRepository.findById(copyId).orElseThrow(() -> new AppException(ErrorCode.BOOK_COPY_NOT_FOUND));
-        String qrData = bookCopy.getQrCode(); // Lấy dữ liệu đã lưu
+        String qrData = bookCopy.getQrCode();
         return qrCodeUtil.generateQRCodeBase64(qrData, 200, 200);
 
     }
 
 
-    /**
-     * Sinh ra một mã bản sao duy nhất.
-     * Logic: ISBN + một chuỗi ngẫu nhiên/thời gian để đảm bảo tính duy nhất.
-     * Cần có một vòng lặp để đảm bảo mã này chưa tồn tại trong CSDL.
-     */
+
     private String generateUniqueCopyNumber(String isbn) {
         String uniquePart;
         String potentialCopyNumber;
         do {
-            // Tạo một chuỗi ngẫu nhiên gồm 6 ký tự.
-            // UUID.randomUUID().toString().substring(0, 6) là một cách đơn giản.
+
             uniquePart = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
             potentialCopyNumber = isbn + "-" + uniquePart;
         } while (bookCopyRepository.existsByCopyNumber(potentialCopyNumber)); // Kiểm tra sự tồn tại

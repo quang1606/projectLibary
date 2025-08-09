@@ -79,17 +79,16 @@ public class PaymentServiceImplement implements PaymentService {
         log.info("Received payload: Amount={}, Description='{}', Success={}",
                 payload.getAmount(), payload.getDescription(), payload.isSuccess());
 
-        // --- BƯỚC 1: Trích xuất và kiểm tra transactionId ---
         String transactionId = extractTransactionIdFromDescription(payload.getDescription());
 
         if (transactionId == null) {
             log.warn("Webhook processing stopped: Could not extract a valid transactionId from description '{}'.",
                     payload.getDescription());
-            return; // Thoát ra
+            return;
         }
         log.info("Extracted Transaction ID: {}", transactionId);
 
-        // --- BƯỚC 2: Tìm các khoản thanh toán ---
+
         List<Payment> payments = paymentRepository.findByStatusAndTransactionId(PaymentStatus.PENDING, transactionId);
 
         if (payments.isEmpty()) {
@@ -103,8 +102,7 @@ public class PaymentServiceImplement implements PaymentService {
         for (Payment payment : payments) {
             payment.setStatus(PaymentStatus.COMPLETED);
             payment.setPaymentDate(LocalDateTime.now());
-            // Dòng này không cần thiết, transactionId đã được set từ trước
-            // payment.setTransactionId(payment.getTransactionId());
+
         }
 
         try {
@@ -112,7 +110,7 @@ public class PaymentServiceImplement implements PaymentService {
             log.info("Successfully updated {} payment(s) to COMPLETED status in the database.", payments.size());
         } catch (Exception e) {
             log.error("!!!!!!!!!! FAILED to save payments to database!", e);
-            // Ném lại lỗi để transaction có thể rollback
+
             throw new RuntimeException("DB update failed during webhook processing", e);
         }
 

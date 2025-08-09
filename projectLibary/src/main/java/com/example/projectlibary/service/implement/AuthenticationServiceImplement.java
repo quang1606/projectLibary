@@ -81,19 +81,18 @@ public class AuthenticationServiceImplement implements AuthenticationService {
                 tokenBlacklistService.blacklist(accessToken,remainingExpiration);
             }
         }
-        // 2. Vô hiệu hóa Refresh Token (xóa khỏi DB và xóa cookie)
-        // Đọc token từ cookie thay vì từ SecurityContext
+
         Optional.ofNullable(getRefreshTokenFromCookie(request)).ifPresent(token -> {
             refreshTokenService.deleteByToken(token);
         });
-        // *** NEW ***: Gửi response để xóa cookie ở client
+
         deleteRefreshTokenCookie(response);
 
         SecurityContextHolder.clearContext();
     }
 
 
-    // === CHANGED ===: Chỉ nhận chuỗi token làm tham số
+
     public RefreshTokenResponse refreshToken(String refreshToken) throws BadRequestException {
         return refreshTokenService.finByToken(refreshToken)
                 .map(refreshTokenService::verifyRefreshToken)
@@ -101,9 +100,9 @@ public class AuthenticationServiceImplement implements AuthenticationService {
                 .map(user -> {
                     UserDetails userDetails = new CustomUserDetails(user);
 
-                    // Bây giờ truyền đối tượng UserDetails hợp lệ này vào hàm tạo token
+
                     String accessToken = jwtTokenUtil.generateAccessToken(userDetails);
-                    // Không cần trả lại refresh token trong body
+
                     return new RefreshTokenResponse(accessToken);
                 })
                 .orElseThrow(() -> new BadRequestException("Refresh token is not in database or invalid!"));
@@ -208,11 +207,11 @@ public class AuthenticationServiceImplement implements AuthenticationService {
     }
 
     private void deleteRefreshTokenCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie(refreshTokenCookieName, null); // Đặt giá trị là null
+        Cookie cookie = new Cookie(refreshTokenCookieName, null);
         cookie.setHttpOnly(true);
         cookie.setSecure(false); // TODO: Đổi thành TRUE khi deploy
         cookie.setPath("/");
-        cookie.setMaxAge(0); // Hết hạn ngay lập tức -> trình duyệt sẽ xóa
+        cookie.setMaxAge(0);
         response.addCookie(cookie);
     }
 
@@ -231,7 +230,7 @@ public class AuthenticationServiceImplement implements AuthenticationService {
 
     private void addRefreshTokenCookie(HttpServletResponse response, String token) {
         Cookie cookie = new Cookie(refreshTokenCookieName, token);
-        cookie.setHttpOnly(true); // Ngăn JavaScript truy cập -> Chống XSS
+        cookie.setHttpOnly(true);
         cookie.setSecure(false); // TODO: Đổi thành TRUE khi deploy lên môi trường production (HTTPS)
         cookie.setPath("/"); // Áp dụng cho toàn bộ domain
         cookie.setMaxAge((int) (refreshTokenDurationMs / 1000)); // Thời gian sống của cookie tính bằng giây

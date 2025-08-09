@@ -79,14 +79,14 @@ public class AuthorServiceImplement implements AuthorService {
         Author authorToUpdate = authorRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.AUTHOR_NOT_FOUND));
 
-        // Cập nhật có điều kiện
+
         if (request.getName() != null && !request.getName().isBlank()) {
             authorToUpdate.setName(request.getName());
         }
         if (request.getBio() != null) {
             authorToUpdate.setBio(request.getBio());
         }
-        // Chỉ upload và cập nhật avatar nếu có file mới được gửi lên
+
         if (avatarFile != null && !avatarFile.isEmpty()) {
             try {
                 Map result = cloudinaryService.uploadFile(avatarFile, "library/avatars");

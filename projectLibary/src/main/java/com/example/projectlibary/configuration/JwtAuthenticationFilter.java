@@ -59,7 +59,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             authToken.setDetails(
                     new WebAuthenticationDetailsSource().buildDetails(request)
             );
-            // Thiết lập Authentication trong SecurityContext
+
             SecurityContextHolder.getContext().setAuthentication(authToken);
         }
         }

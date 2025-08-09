@@ -48,7 +48,6 @@ public class BorrowingServiceImplement implements BorrowingService {
         User currentUser = getCurrentUser();
         BookCopy bookCopy = bookCopyRepository.findByQrCode(request.getQrCode())
                 .orElseThrow(() -> new AppException(ErrorCode.BOOK_COPY_NOT_FOUND));
-        // 2. KIỂM TRA VÀ "CHỐT" TRẠNG THÁI (Logic quan trọng nhất)
         if (bookCopy.getStatus() != BookCopyStatus.AVAILABLE) {
             throw new AppException(ErrorCode.BOOK_COPY_NOT_AVAILABLE);
         }
@@ -59,11 +58,11 @@ public class BorrowingServiceImplement implements BorrowingService {
         BorrowingCart cart;
         if (activeCartOpt.isPresent()) {
             cart = activeCartOpt.get();
-            // *** LOGIC KIỂM TRA HẾT HẠN GIỎ HÀNG ***
+
             if (cart.getExpiresAt().isBefore(LocalDateTime.now())) {
                 // Nếu giỏ hàng đã hết hạn, xử lý nó và yêu cầu người dùng tạo lại
                 expireCart(cart); // Gọi hàm private để dọn dẹp
-                // Ném lỗi để báo cho người dùng biết phiên cũ đã hết hạn
+
                 throw new AppException(ErrorCode.BORROWING_CART_EXPIRED);
             }
             // Nếu còn hạn, tiếp tục dùng giỏ hàng này
@@ -76,7 +75,6 @@ public class BorrowingServiceImplement implements BorrowingService {
                 .bookCopy(bookCopy)
                 .build();
         cart.addItem(newItem);
-        // 5. Lưu toàn bộ thay đổi (cart, item, bookCopy) vào CSDL
         BorrowingCart savedCart = borrowingCartRepository.save(cart);
         BookStatusChangedEvent event = BookStatusChangedEvent.builder()
                 .bookId(bookCopy.getId())
@@ -141,10 +139,8 @@ public class BorrowingServiceImplement implements BorrowingService {
         BookCopy bookCopy = itemToRemove.getBookCopy();
         bookCopy.setStatus(BookCopyStatus.AVAILABLE);
 
-        // Xóa item khỏi giỏ hàng. Nhờ có orphanRemoval=true, item sẽ bị xóa khỏi CSDL.
         cart.removeItem(itemToRemove);
 
-        // Lưu lại giỏ hàng (thay đổi này sẽ cascade xuống item và bookCopy)
         BorrowingCart updatedCart = borrowingCartRepository.save(cart);
         BookStatusChangedEvent event = BookStatusChangedEvent.builder()
                 .bookId(bookCopy.getId())
@@ -162,8 +158,7 @@ public class BorrowingServiceImplement implements BorrowingService {
         for (BorrowingCartItem item : cart.getItems()) {
             item.getBookCopy().setStatus(BookCopyStatus.AVAILABLE);
         }
-        // Lưu lại các thay đổi. Không cần xóa items vì giỏ hàng đã hết hạn.
-        // Hoặc có thể xóa items tùy theo logic nghiệp vụ.
+
         borrowingCartRepository.save(cart);
     }
     private String generateRandomNumericString(int length) {

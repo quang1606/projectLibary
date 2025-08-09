@@ -59,8 +59,7 @@ public class NewsServiceImplement implements NewsService {
                 .content(sanitizeHtml(createNewsRequest.getContent()))
                 .status(createNewsRequest.getStatus())
                 .build();
-        // KHI GỌI SAVE, Spring SẼ TỰ ĐỘNG GỌI auditorProvider()
-        // VÀ ĐIỀN VÀO createdBy, createdAt
+
         News savedPost = newsRepository.save(newPost);
 
         return newsMapper.toDetailResponse(savedPost);
@@ -94,8 +93,7 @@ public class NewsServiceImplement implements NewsService {
     }
 
     private String sanitizeHtml(String untrustedHtml) {
-        // Ví dụ sử dụng JSoup
-        // Cần thêm dependency: org.jsoup:jsoup
+
         return Jsoup.clean(untrustedHtml, Safelist.basicWithImages());
     }
 }

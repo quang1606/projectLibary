@@ -14,20 +14,17 @@ import java.util.Optional;
 public class JpaAuditingConfiguration {
     @Bean
     public AuditorAware<User> auditorProvider() {
-        // Sử dụng biểu thức lambda để code ngắn gọn
         return () -> {
-            // Lấy thông tin xác thực từ SecurityContext của Spring Security
+
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-            // Kiểm tra xem người dùng đã đăng nhập hay chưa
+
             if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
                 return Optional.empty(); // Không có người dùng nào đăng nhập
             }
 
-            // Lấy đối tượng CustomUserDetails từ Principal
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
-            // Trả về Optional chứa đối tượng User
             return Optional.ofNullable(userDetails.getUser());
         };
     }

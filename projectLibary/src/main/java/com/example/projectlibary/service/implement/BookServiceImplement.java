@@ -99,14 +99,14 @@ public class BookServiceImplement implements BookService {
         Map<Long, Book> bookMap = books.stream().collect(Collectors.toMap(Book::getId, book -> book));
         Map<Long, Long> loanCountMap = loanCountPage.getContent().stream().collect(Collectors.toMap(BookLoanCountResponse::getId, BookLoanCountResponse::getLoanCount));
 
-        // Bước cuối: Kết hợp dữ liệu và tạo ra danh sách response cuối cùng.
+
         List<BookSummaryResponse> finalResponseList = bookIds.stream()
                 .map(id -> {
                     Book book = bookMap.get(id);
                     long loanCount = loanCountMap.getOrDefault(id, 0L);
 
                     BookSummaryResponse response = bookMapper.toSummaryResponse(book);
-                    // Gán thêm thông tin số lượt mượn
+
                     response.setLoanCount(loanCount);
                     return response;
                 })
@@ -158,7 +158,7 @@ public class BookServiceImplement implements BookService {
         List<Long> bookIds = topBooksResult.stream()
                 .map(TopRatedBookResponse::getBookId)
                 .collect(Collectors.toList());
-        // 3. Lấy chi tiết sách theo các ID đã có
+        //  Lấy chi tiết sách theo các ID đã có
         List<Book> books = bookRepository.findAllById(bookIds);
         Map<Long, Book> bookMap = books.stream().collect(Collectors.toMap(Book::getId, b -> b));
         // Giữ đúng thứ tự ban đầu từ câu query xếp hạng
@@ -166,13 +166,12 @@ public class BookServiceImplement implements BookService {
                 .map(bookMap::get)
                 .filter(Objects::nonNull)
                 .toList();
-        // 4. Map sang DTO và làm giàu dữ liệu (nếu cần)
         List<BookSummaryResponse> bookSummaryResponses = sortedBooks.stream()
                 .map(bookMapper::toSummaryResponse)
                 .toList();
         enrichSummariesWithLoanCounts(bookSummaryResponses);
 
-        // 5. PHÂN TRANG THỦ CÔNG TRONG JAVA
+        //  PHÂN TRANG THỦ CÔNG TRONG JAVA
         int start = (int) pageable.getOffset();
         int end = Math.min((start + pageable.getPageSize()), bookSummaryResponses.size());
         // Lấy ra danh sách con cho trang hiện tại
@@ -187,14 +186,13 @@ public class BookServiceImplement implements BookService {
         Pageable pageable = PageRequest.of(page, size);
         if (keyWord == null || keyWord.isBlank()) {
 
-            // return bookElasticSearchRepository.findAll(pageable);
-            // Hoặc dùng query match_all nếu muốn
+
             Query query = Query.of(q->q.matchAll(m->m));
 
             return searchWithQuery(query, pageable);
         }
 
-        // Xây dựng một câu truy vấn Multi-match phức tạp và mạnh mẽ
+
         Query query = Query.of(q -> q
                 .multiMatch(mm -> mm
                         .query(keyWord)
@@ -317,8 +315,8 @@ public class BookServiceImplement implements BookService {
                 .publisher(createBookRequest.getPublisher())
                 .publicationYear(createBookRequest.getPublicationYear())
                 .replacementCost(createBookRequest.getReplacementCost())
-                .thumbnail(thumbnailUrl) // Gán URL đã upload
-                .ebookUrl(ebookUrl)   // Gán URL đã upload
+                .thumbnail(thumbnailUrl)
+                .ebookUrl(ebookUrl)
                 .category(category)
                 .authors(authors)
                 .build();
@@ -347,10 +345,10 @@ public class BookServiceImplement implements BookService {
     public BookDetailResponse updateBook(UpdateBookRequest request, MultipartFile pdfFile, MultipartFile thumbnail,Long id) {
         Book bookToUpdate = bookRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
-        boolean isUpdated = false;
-        // 2. Kiểm tra ISBN (Logic đã sửa)
+
+
         String newIsbn = request.getIsbn();
-        // Chỉ kiểm tra nếu ISBN được thay đổi
+
         if (newIsbn != null && !newIsbn.equals(bookToUpdate.getIsbn())) {
             // Kiểm tra xem ISBN mới có bị trùng với sách nào khác không
             bookRepository.findByIsbn(newIsbn).ifPresent(existingBook -> {
@@ -360,13 +358,12 @@ public class BookServiceImplement implements BookService {
             });
             bookToUpdate.setIsbn(newIsbn);
         }
-        // 3. Cập nhật các trường đơn giản (chỉ cập nhật nếu giá trị mới không null)
         if (request.getTitle() != null) bookToUpdate.setTitle(request.getTitle());
         if (request.getDescription() != null) bookToUpdate.setDescription(request.getDescription());
         if (request.getPublisher() != null) bookToUpdate.setPublisher(request.getPublisher());
         if (request.getPublicationYear() != null) bookToUpdate.setPublicationYear(request.getPublicationYear());
         if (request.getReplacementCost() != null) bookToUpdate.setReplacementCost(request.getReplacementCost());
-        // 4. Cập nhật các quan hệ (nếu có thay đổi)
+
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
@@ -380,7 +377,7 @@ public class BookServiceImplement implements BookService {
             bookToUpdate.setAuthors(authors);
         }
 
-        // 5. Cập nhật file Thumbnail (chỉ khi có file mới)
+
         if (thumbnail != null && !thumbnail.isEmpty()) {
             try {
                 Map thumbnailResult = cloudinaryService.uploadFile(thumbnail, "library/thumbnails");
@@ -391,7 +388,7 @@ public class BookServiceImplement implements BookService {
             }
         }
 
-        // 6. Cập nhật file Ebook (chỉ khi có file mới)
+
         if (pdfFile != null && !pdfFile.isEmpty()) {
             try {
                 Map pdfResult = cloudinaryService.uploadFile(pdfFile, "library/ebooks");
@@ -403,7 +400,6 @@ public class BookServiceImplement implements BookService {
         }
 
 
-        // 7. Lưu lại (JPA Auditing sẽ tự động cập nhật updatedBy và updatedAt)
         Book updatedBook = bookRepository.save(bookToUpdate);
         log.info("Successfully updated book with ID: {}", updatedBook.getId());
 
@@ -421,7 +417,6 @@ public class BookServiceImplement implements BookService {
         return bookMapper.toBookDetailResponse(updatedBook);
     }
 
-    // service/implement/BookServiceImplement.java
 
     @Override
     @Transactional 
@@ -431,25 +426,19 @@ public class BookServiceImplement implements BookService {
         User currentUser = userRepository.findByEmail(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        // 2. Tìm đối tượng Book cần xóa
-        // Do có @Where, findById sẽ chỉ tìm thấy các sách chưa bị xóa
+
         Book bookToDelete = bookRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND));
 
 
         bookToDelete.setDeletedBy(currentUser);
 
-        // 4. Lưu lại để cập nhật 'deletedBy' trước khi 'xóa'
-        // Mặc dù @SQLDelete không dùng đến trường này, nhưng việc lưu lại là một thực hành tốt
-        // để đảm bảo trạng thái của entity là nhất quán.
         bookRepository.save(bookToDelete);
         if (!bookRepository.existsById(id)) {
             throw new AppException(ErrorCode.BOOK_NOT_FOUND);
         }
         // 2. Thực hiện xóa
-        // Do bạn đã cấu hình cascade và khóa ngoại, Hibernate/JPA sẽ xử lý các bảng liên quan:
-        // - Xóa các bản ghi trong bảng nối `book_authors`.
-        // - Các hành động khác tùy thuộc vào `CascadeType` và `onDelete` của các quan hệ @OneToMany.
+
         BookSyncEvent bookSyncEvent = BookSyncEvent.builder()
                 .evenType("DELETE")
                 .id(id)
@@ -474,9 +463,6 @@ public class BookServiceImplement implements BookService {
         // 3. Thực hiện khôi phục: Set các trường xóa mềm về giá trị ban đầu
         bookToRestore.setDeletedAt(null);
         bookToRestore.setDeletedBy(null);
-
-        // Lưu ý: JPA Auditing (@LastModifiedBy, @LastModifiedDate) sẽ tự động cập nhật
-        // updated_by và updated_at khi chúng ta gọi save().
 
         // 4. Lưu lại sách đã được khôi phục vào DB
         Book restoredBook = bookRepository.save(bookToRestore);
