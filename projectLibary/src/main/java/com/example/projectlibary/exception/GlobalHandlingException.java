@@ -81,8 +81,7 @@ public class GlobalHandlingException {
     }
 
     /**
-     * Xử lý tất cả các lỗi không được định nghĩa khác (lưới cứu hộ).
-     * Tránh để lộ chi tiết lỗi hệ thống ra ngoài.
+     * Xử lý tất cả các lỗi không được định nghĩa khác
      */
     public ResponseEntity<ErrorResponse> handleUncategorizedException(Exception ex, WebRequest request) {
 
