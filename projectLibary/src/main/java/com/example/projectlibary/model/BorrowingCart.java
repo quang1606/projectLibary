@@ -15,10 +15,7 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Table(name = "borrowing_carts", indexes = {
-        // Index để worker tìm các giỏ hết hạn nhanh chóng
-        @Index(name = "idx_carts_status_expires", columnList = "status, expires_at")
-})
+@Table(name = "borrowing_carts")
 public class BorrowingCart extends AbstractEntity{
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false, unique = false,

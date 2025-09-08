@@ -41,7 +41,7 @@ public class Payment extends AbstractEntity {
     @Column(name = "status", nullable = false)
     private PaymentStatus status = PaymentStatus.PENDING;
 
-    @Column(name = "transaction_id", length = 255, unique = true)
+    @Column(name = "transaction_id", length = 255)
     private String transactionId; // ID giao dịch từ bên thứ 3
 
     @Lob

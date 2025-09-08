@@ -48,7 +48,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return UserDetails.super.isAccountNonLocked();
+        return  UserDetails.super.isAccountNonLocked();
     }
 
     @Override
@@ -58,6 +58,6 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return UserDetails.super.isEnabled();
+        return user.isActive();
     }
 }

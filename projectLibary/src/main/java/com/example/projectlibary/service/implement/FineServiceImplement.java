@@ -59,7 +59,7 @@ private final KafkaProducerService kafkaProducerService;
             case SLIGHTLY_DAMAGED:
                 return replacementCost.multiply(new BigDecimal("0.25")); // Phạt 25%
             case HEAVILY_DAMAGED:
-                return replacementCost.multiply(new BigDecimal("0.5")); // Phạt 50%
+                return replacementCost; // Phạt 50%
             case LOST:
                 return replacementCost; // Phạt 100%
             case NORMAL:

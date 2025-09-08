@@ -23,4 +23,6 @@ public interface BorrowingCartRepository extends JpaRepository<BorrowingCart, Lo
 
 
     List<BorrowingCart> findByStatusAndConfirmationCodeExpiresAtBefore(BorrowingCartStatus status, LocalDateTime confirmationCodeExpiresAtBefore);
+
+    Optional<BorrowingCart> findByUser(User currentUser);
 }

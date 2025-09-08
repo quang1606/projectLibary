@@ -53,7 +53,7 @@ public class LibrarianBookController {
         bookService.deleteBook(id);
         return ResponseEntity.ok().build();
     }
-    @PostMapping("/{id}/restore") 
+    @PostMapping("/{id}/restore")
     @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     public ResponseEntity<String> restoreBook(@PathVariable Long id) {
         bookService.restoreBook(id);

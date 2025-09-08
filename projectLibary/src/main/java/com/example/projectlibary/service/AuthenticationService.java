@@ -28,5 +28,5 @@ public interface AuthenticationService {
 
     void forgotPassword(@Valid ForgotPasswordRequest forgotPasswordRequest, HttpServletRequest request);
 
-    void restPassword(@Valid RestPasswordRequest restPasswordRequest,String token);
+    void restPassword(@Valid RestPasswordRequest restPasswordRequest);
 }

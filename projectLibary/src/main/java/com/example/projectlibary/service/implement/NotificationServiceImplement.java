@@ -120,7 +120,7 @@ public class NotificationServiceImplement implements NotificationService {
     public void createReturnLostOrHeavilyDamagedNotification(BookLoan loan, BigDecimal replacementCost) {
         String bookTitle = loan.getBookCopy().getBook().getTitle();
         String message = String.format(
-                "Sách '%s' bạn mượn đã được ghi nhận là bị mất hoặc hỏng nặng. Bạn cần thanh toán chi phí đền bù là %s. Vui lòng liên hệ thư viện để xử lý.",
+                "Sách '%s' bạn mượn đã được ghi nhận là bị hỏng nặng. Bạn cần thanh toán chi phí đền bù là %s. Vui lòng liên hệ thư viện để xử lý.",
                 bookTitle,
                 formatCurrency(replacementCost)
         );
@@ -140,6 +140,7 @@ public class NotificationServiceImplement implements NotificationService {
         }
 
     }
+
 
     @Override
     public void createAlertNotification(BookLoan loan) {

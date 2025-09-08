@@ -7,6 +7,8 @@ import com.example.projectlibary.model.User;
 import com.example.projectlibary.repository.RefreshTokenRepository;
 import com.example.projectlibary.repository.UserRepository;
 import com.example.projectlibary.service.RefreshTokenService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,13 +26,15 @@ public class RefreshTokenServiceImplement implements RefreshTokenService {
     @Value("${jwt.refresh-token.expiration}")
     private Long refreshTokenDurationMs;
 
-
+    @PersistenceContext // Tiêm EntityManager
+    private EntityManager entityManager;
 
     @Override
     @Transactional
     public RefreshToken createRefreshToken(String email) {
         User user = userRepository.findByEmail(email).orElseThrow(()->new AppException(ErrorCode.USER_NOT_FOUND));
         refreshTokenRepository.deleteByUser(user);
+        entityManager.flush();
         RefreshToken refreshToken = RefreshToken.builder()
                 .user(user)
                 .token(UUID.randomUUID().toString())

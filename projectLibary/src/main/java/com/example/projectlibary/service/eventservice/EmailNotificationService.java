@@ -6,6 +6,7 @@ import com.example.projectlibary.event.ForgotPasswordEvent;
 import com.example.projectlibary.event.UserRegistrationEvent;
 import com.example.projectlibary.model.User;
 import com.example.projectlibary.repository.UserRepository;
+import com.example.projectlibary.repository.VerificationTokensRepository;
 import com.example.projectlibary.service.AuthenticationService;
 import com.example.projectlibary.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class EmailNotificationService {
     private final JavaMailSender mailSender;
     private final UserRepository userRepository; // Cần để lấy lại User object
     private final NotificationService notificationService;
+    private final VerificationTokensRepository verificationTokensRepository;
     @KafkaListener(topics = "user-registration-events", groupId = "email-notification-group")
     public void handleUserRegistrationEvent(UserRegistrationEvent event) {
         log.info("Received user registration event for email from kafka : Type='{}', Email ='{}'", event.getEvent(), event.getEmail());
@@ -86,11 +88,12 @@ public class EmailNotificationService {
         if(user==null) {
             return;
         }
+        verificationTokensRepository.findByUser(user).ifPresent(verificationTokensRepository::delete);
         String token = UUID.randomUUID().toString();
         authService.createVerificationTokenForUser(user, token);
         String recipientAddress = user.getEmail();
         String subject= "Đổi mật khẩu";
-        String confirmationUrl = event.getAppUrl() + "/api/reset-password?token=" + token;
+        String confirmationUrl = event.getAppUrl() + "/api/auth/reset-password?token=" + token;
         String messageText = "Thank you for registering. Please click the link below to activate your account:";
         sendEmail(recipientAddress, subject, messageText + "\r\n" + confirmationUrl);
 

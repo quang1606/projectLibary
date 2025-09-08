@@ -667,7 +667,7 @@ private BookElasticSearchRepository bookElasticSearchRepository;
             return;
         }
 
-        int numberOfLoansToCreate = 300; // Số lượng phiếu mượn muốn tạo
+        int numberOfLoansToCreate = 100; // Số lượng phiếu mượn muốn tạo
         // Tạo list để lưu các đối tượng mới, giúp tối ưu hiệu năng bằng cách lưu một lần (batch save)
         List<BookLoan> loansToSave = new ArrayList<>();
         List<BookCopy> copiesToUpdate = new ArrayList<>();

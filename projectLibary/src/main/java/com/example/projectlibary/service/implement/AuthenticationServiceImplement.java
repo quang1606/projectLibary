@@ -189,8 +189,8 @@ public class AuthenticationServiceImplement implements AuthenticationService {
 
     @Override
     @Transactional
-    public void restPassword(RestPasswordRequest restPasswordRequest,String token) {
-        VerificationTokens verificationTokens = verificationTokensRepository.findByToken(token).orElseThrow(()->new AppException(ErrorCode.INVALID_VERIFICATION_TOKEN));
+    public void restPassword(RestPasswordRequest restPasswordRequest) {
+        VerificationTokens verificationTokens = verificationTokensRepository.findByToken(restPasswordRequest.getToken()).orElseThrow(()->new AppException(ErrorCode.INVALID_VERIFICATION_TOKEN));
         if(verificationTokens.isExpired()) {
             verificationTokensRepository.delete(verificationTokens);
             throw new AppException(ErrorCode.EXPIRED_VERIFICATION_TOKEN);

@@ -62,8 +62,8 @@ public class AuthController {
         return ResponseEntity.ok("Forgot password activated successfully.");
     }
     @PostMapping("/reset-password")
-    public ResponseEntity<?> restPassword(@Valid @RequestBody RestPasswordRequest restPasswordRequest, @RequestParam("token") String token) {
-        authenticationService.restPassword(restPasswordRequest,token);
+    public ResponseEntity<?> restPassword(@Valid @RequestBody RestPasswordRequest restPasswordRequest) {
+        authenticationService.restPassword(restPasswordRequest);
         return ResponseEntity.ok("Rest password activated successfully.");
     }
 
