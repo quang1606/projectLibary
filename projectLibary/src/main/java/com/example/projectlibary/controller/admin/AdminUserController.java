@@ -26,6 +26,5 @@ public class AdminUserController {
         UserResponse userResponse = userService.updateUserRole(userId, request.getRole());
         ResponseData<UserResponse> responseData = new ResponseData<>(200,"success",userResponse);
         return ResponseEntity.ok(responseData);
-
     }
 }

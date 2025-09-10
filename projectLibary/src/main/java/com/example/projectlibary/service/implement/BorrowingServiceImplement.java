@@ -66,7 +66,6 @@ public class BorrowingServiceImplement implements BorrowingService {
             resetCart(cart);
             entityManager.flush();
         }
-
         // 4. "CHỐT" TRẠNG THÁI SÁCH VÀ THÊM VÀO GIỎ
         bookCopy.setStatus(BookCopyStatus.IN_CART);
         BorrowingCartItem newItem = BorrowingCartItem.builder()
@@ -163,7 +162,6 @@ public class BorrowingServiceImplement implements BorrowingService {
 
         // 3. Cập nhật trạng thái giỏ hàng
         cart.setStatus(BorrowingCartStatus.EXPIRED);
-
         borrowingCartRepository.save(cart); // Lưu tất cả thay đổi
     }
     private String generateRandomNumericString(int length) {

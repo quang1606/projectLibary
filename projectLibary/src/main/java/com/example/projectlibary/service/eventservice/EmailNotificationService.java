@@ -117,14 +117,14 @@ public class EmailNotificationService {
             return;
         }
         String recipientAddress = user.getEmail();
-        String subject = "Welcome to Our Library";
-        String messageText = "Hi"+ (user.getUsername()!=null ? user.getUsername():"there")+"!"+ ",\n\n"
-                +"Welcome abroad! You Account has been successfully verified.\n\n "
-                + "We recommend updating your personal profile to get the best experience from our library. "
-                + "You can do so by visiting your profile page here: [Link to Profile Page]\n\n"
-                + "Happy reading!\n\n"
-                + "Best regards,\n"
-                + "The Library Team";
+        String subject = "Chào mừng đến với Thư viện";
+        String messageText = "Xin chào " + (user.getUsername()!=null ? user.getUsername():"bạn") + "!\n\n"
+                + "Chào mừng bạn đã gia nhập! Tài khoản của bạn đã được xác minh thành công.\n\n"
+                + "Chúng tôi khuyến khích bạn cập nhật hồ sơ cá nhân để có được trải nghiệm tốt nhất tại thư viện. "
+                + "Bạn có thể thực hiện điều đó bằng cách truy cập trang hồ sơ của mình tại đây: [Liên kết đến trang Hồ sơ]\n\n"
+                + "Chúc bạn đọc sách vui vẻ!\n\n"
+                + "Trân trọng,\n"
+                + "Đội ngũ Thư viện";
         sendEmail(recipientAddress, subject, messageText);
         notificationService.createWelcomeNotification(user);
     }
@@ -138,9 +138,9 @@ public class EmailNotificationService {
         authService.createVerificationTokenForUser(user, token);
 
         String recipientAddress = user.getEmail();
-        String subject = "Account Registration Confirmation";
+        String subject = "Xác nhận đăng ký tài khoản";
         String confirmationUrl = event.getAppUrl() + "/api/auth/registrationConfirm?token=" + token;
-        String messageText = "Thank you for registering. Please click the link below to activate your account:";
+        String messageText = "Cảm ơn bạn đã đăng ký. Vui lòng nhấp vào liên kết bên dưới để kích hoạt tài khoản của bạn.\n:";
 
         sendEmail(recipientAddress, subject, messageText + "\r\n" + confirmationUrl);
     }
